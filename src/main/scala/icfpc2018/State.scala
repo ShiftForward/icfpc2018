@@ -20,16 +20,16 @@ case object Full
 case object Void
 
 case class State(
-                  energy: Int,
-                  harmonics: Harmonics,
-                  matrix: Vector[Vector[Voxel]],
-                  bots: Set[Bot],
-                  trace: List[Command])
+  energy: Int,
+  harmonics: Harmonics,
+  matrix: Vector[Vector[Voxel]],
+  bots: Set[Bot],
+  trace: List[Command])
 
 case class Bot(
-              bid: Int,
-              pos: Coord,
-              seeds: Set[Int])
+  bid: Int,
+  pos: Coord,
+  seeds: Set[Int])
 
 case class Coord(x: Int, y: Int, z: Int)
 
