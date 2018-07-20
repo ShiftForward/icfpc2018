@@ -19,7 +19,7 @@ object Main extends App {
 
   def export(commands: List[Command], filename: String): String = {
     val output = commands.flatMap(_.encoded).toArray
-    val outputFilename = "output/" + filename
+    val outputFilename = "output/" + filename + ".nbt"
     val bos = new BufferedOutputStream(new FileOutputStream(outputFilename))
     bos.write(output)
     bos.close()
