@@ -3,8 +3,6 @@ package icfpc2018
 import java.io.File
 import java.nio.file.Files
 
-import scala.io.Source
-
 case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty) {
 
   def validateCoord(coord: Coord): Boolean =
