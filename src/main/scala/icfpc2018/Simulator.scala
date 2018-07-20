@@ -16,7 +16,7 @@ object Simulator {
   implicit val botOrdering = Ordering.by[Bot, Int](_.bid)
 
   def run(st: State, model: Matrix): State = {
-    if(st.trace.isEmpty) st
+    if (st.trace.isEmpty) st
     else run(nextTick(st, model), model)
   }
 
@@ -30,11 +30,11 @@ object Simulator {
     if (allVolCoords.length != allVolCoords.distinct.length) {
       throw ConflictingVolatileCoordsException("Conflicting volatile coordinates", allVolCoords, st)
     }
-    if(newSt.harmonics == Low && !newSt.matrix.isGrounded) {
+    if (newSt.harmonics == Low && !newSt.matrix.isGrounded) {
       throw SimulatorException("Matrix is not grounded", st)
     }
 
-    val harmonicsCost = if(st.harmonics == High) 30 else 3
+    val harmonicsCost = if (st.harmonics == High) 30 else 3
     st.copy(energy = st.energy +
       harmonicsCost * model.dimension * model.dimension * model.dimension +
       20 * newSt.bots.size)

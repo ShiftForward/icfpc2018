@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.Files
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 
 case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty, groundedVoxels: Set[Coord] = Set.empty) {
 
