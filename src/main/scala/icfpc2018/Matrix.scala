@@ -5,7 +5,12 @@ import java.nio.file.Files
 
 import scala.annotation.tailrec
 
-case class Matrix(dimension: Int, filledVoxels: Set[Coord] = Set.empty, groundedVoxels: Set[Coord] = Set.empty) {
+case class Matrix(
+  dimension: Int,
+  groundedVoxels: Set[Coord] = Set.empty,
+  ungroundedVoxels: Set[Coord] = Set.empty) {
+
+  lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
 
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
@@ -16,25 +21,25 @@ case class Matrix(dimension: Int, filledVoxels: Set[Coord] = Set.empty, grounded
     coord.x >= 1 && coord.x < (dimension - 1) &&
       coord.y >= 0 && coord.y < dimension &&
       coord.z >= 1 && coord.z < (dimension - 1) &&
-      !filledVoxels.contains(coord)
+      !voxels.contains(coord)
 
   def get(coord: Coord): Voxel = {
     require(validateCoord(coord), s"Invalid coordinate: $coord")
-    if (filledVoxels.contains(coord)) Full else Void
+    if (voxels.contains(coord)) Full else Void
   }
 
   def supported(coord: Coord): Boolean =
     coord.y == 0 || coord.neighbors.filter(validateCoord).exists(groundedVoxels)
-  lazy val isGrounded: Boolean = filledVoxels.size == groundedVoxels.size
+  lazy val isGrounded: Boolean = ungroundedVoxels.isEmpty
 
-  private[this] def updatedGrounded(newCoord: Coord): Set[Coord] = {
+  private[this] def updatedGrounded(newCoord: Coord): (Set[Coord], Set[Coord]) = {
     val (groundedInit, ungroundedInit): (Set[Coord], Set[Coord]) =
-      if (supported(newCoord)) (groundedVoxels + newCoord, filledVoxels -- groundedVoxels)
-      else (groundedVoxels, (filledVoxels -- groundedVoxels) + newCoord)
+      if (supported(newCoord)) (groundedVoxels + newCoord, ungroundedVoxels)
+      else (groundedVoxels, ungroundedVoxels + newCoord)
     @tailrec
-    def aux(groundedAccum: Set[Coord], ungroundedAccum: Set[Coord]): Set[Coord] = {
+    def aux(groundedAccum: Set[Coord], ungroundedAccum: Set[Coord]): (Set[Coord], Set[Coord]) = {
       val canBeGrounded = ungroundedAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
-      if (canBeGrounded.isEmpty) groundedAccum
+      if (canBeGrounded.isEmpty) (groundedAccum, ungroundedAccum)
       else {
         aux(groundedAccum ++ canBeGrounded, ungroundedAccum -- canBeGrounded)
       }
@@ -44,16 +49,16 @@ case class Matrix(dimension: Int, filledVoxels: Set[Coord] = Set.empty, grounded
 
   def fill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
-    val newGrounded = if (supported(coord)) {
-      if (isGrounded) groundedVoxels + coord
+    val (newGrounded, newUngrounded) = if (supported(coord)) {
+      if (isGrounded) (groundedVoxels + coord, ungroundedVoxels)
       else updatedGrounded(coord)
-    } else groundedVoxels
-    copy(filledVoxels = filledVoxels + coord, groundedVoxels = newGrounded)
+    } else (groundedVoxels, ungroundedVoxels + coord)
+    copy(groundedVoxels = newGrounded, ungroundedVoxels = newUngrounded)
   }
 
   def unsafeFill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
-    copy(filledVoxels = filledVoxels + coord, groundedVoxels = groundedVoxels + coord)
+    copy(groundedVoxels = groundedVoxels + coord)
   }
 }
 
