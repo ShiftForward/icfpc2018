@@ -50,35 +50,43 @@ case object Flip extends Command {
 }
 
 case class SMove(lld: LLD) extends Command {
-  val encoded = Vector((100 + lld.a.encoded << 4).toByte, (lld.i + 15).toByte)
+  val encoded = Vector(
+    (100.b + (lld.a.encoded.toInt << 4)).toByte,
+    lld.i.toByte)
 }
 
 case class LMove(sld1: SLD, sld2: SLD) extends Command {
-  val encoded = Vector((1100 + sld1.a.encoded << 4 + sld2.a.encoded << 6).toByte, (sld1.i + sld2.i << 4).toByte)
+  val encoded = Vector(
+    (1100.b + (sld1.a.encoded.toInt << 4) + (sld2.a.encoded.toInt << 6)).toByte,
+    ((sld2.i << 4) + sld1.i).toByte)
 }
 
 case class FusionP(nd: NCD) extends Command {
-  val encoded = Vector((111 + nd.encoded << 3).toByte)
+  val encoded = Vector((111.b + (nd.encoded << 3)).toByte)
 }
 
 case class FusionS(nd: NCD) extends Command {
-  val encoded = Vector((110 + nd.encoded << 3).toByte)
+  val encoded = Vector((110.b + (nd.encoded << 3)).toByte)
 }
 
 case class Fission(nd: NCD, m: Int) extends Command {
-  val encoded = Vector((101 + nd.encoded << 3).toByte, m.toByte)
+  val encoded = Vector((101.b + (nd.encoded << 3)).toByte, m.toByte)
 }
 
 case class Fill(nd: NCD) extends Command {
-  val encoded = Vector((11 + nd.encoded << 3).toByte)
+  val encoded = Vector((11.b + (nd.encoded << 3)).toByte)
 }
 
-case class LLD(a: Dir, i: Int) {
-  require(i >= -15 && i <= 15)
+case class LLD(a: Dir, len: Int) {
+  require(len >= -15 && len <= 15)
+
+  def i = len + 15
 }
 
-case class SLD(a: Dir, i: Int) {
-  require(i >= -5 && i <= 5)
+case class SLD(a: Dir, len: Int) {
+  require(len >= -5 && len <= 5)
+
+  def i = len + 5
 }
 
 case class NCD(dx: Int, dy: Int, dz: Int) {
