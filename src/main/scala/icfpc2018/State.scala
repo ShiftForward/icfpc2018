@@ -31,7 +31,12 @@ case class Bot(
   pos: Coord,
   seeds: Set[Int])
 
-case class Coord(x: Int, y: Int, z: Int)
+case class Coord(x: Int, y: Int, z: Int) {
+  lazy val neighbors: List[Coord] = List(
+    Coord(x - 1, y, z), Coord(x + 1, y, z),
+    Coord(x, y - 1, z), Coord(x, y + 1, z),
+    Coord(x, y, z - 1), Coord(x, y, z + 1))
+}
 
 sealed trait Command {
   def encoded: Vector[Byte]

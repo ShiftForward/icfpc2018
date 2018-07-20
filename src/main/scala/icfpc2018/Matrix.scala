@@ -3,7 +3,10 @@ package icfpc2018
 import java.io.File
 import java.nio.file.Files
 
-case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty) {
+import scala.annotation.tailrec
+import scala.collection.mutable
+
+case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty, groundedVoxels: Set[Coord] = Set.empty) {
 
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
@@ -21,9 +24,29 @@ case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty) {
     voxels.getOrElse(coord, Void)
   }
 
+  def supported(coord: Coord): Boolean =
+    coord.y == 0 || coord.neighbors.filter(validateCoord).exists(groundedVoxels)
+  lazy val isGrounded: Boolean = (voxels.keySet diff groundedVoxels).isEmpty
+
+  private[this] def updatedGrounded(newCoord: Coord): Set[Coord] = {
+    val (groundedInit, ungroundedInit): (Set[Coord], Set[Coord]) =
+      if (supported(newCoord)) (groundedVoxels + newCoord, voxels.keySet diff groundedVoxels)
+      else (groundedVoxels, (voxels.keySet diff groundedVoxels) + newCoord)
+    @tailrec
+    def aux(groundedAccum: Set[Coord], ungroundedAccum: Set[Coord]): Set[Coord] = {
+      val canBeGrounded = ungroundedAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
+      if (canBeGrounded.isEmpty) groundedAccum.toSet
+      else {
+        aux(groundedAccum ++ canBeGrounded, ungroundedAccum -- canBeGrounded)
+      }
+    }
+    aux(groundedInit, ungroundedInit)
+  }
+
   def fill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
-    copy(voxels = voxels.updated(coord, Full))
+    val newGrounded = if (supported(coord)) updatedGrounded(coord) else groundedVoxels
+    copy(voxels = voxels.updated(coord, Full), groundedVoxels = newGrounded)
   }
 
 }
