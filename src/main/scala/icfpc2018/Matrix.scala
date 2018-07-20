@@ -49,6 +49,10 @@ case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty, grounde
     copy(voxels = voxels.updated(coord, Full), groundedVoxels = newGrounded)
   }
 
+  def unsafeFill(coord: Coord): Matrix = {
+    require(canFillCoord(coord), s"Can't fill coordinate: $coord")
+    copy(voxels = voxels.updated(coord, Full), groundedVoxels = groundedVoxels + coord)
+  }
 }
 
 object Matrix {
@@ -63,7 +67,7 @@ object Matrix {
         (0 until 8).foldLeft(m) {
           case (m, i) =>
             val nextM = if ((b & (1 << i)) != 0)
-              m.fill(Coord(x, y, z))
+              m.unsafeFill(Coord(x, y, z))
             else
               m
 
