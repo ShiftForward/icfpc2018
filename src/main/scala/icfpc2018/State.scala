@@ -48,7 +48,7 @@ case class Coord(x: Int, y: Int, z: Int) {
     Coord(x, y - 1, z), Coord(x, y + 1, z),
     Coord(x, y, z - 1), Coord(x, y, z + 1))
 
-  def +(lld: LLD): Coord = lld.a match {
+  def +(lld: CoordinateDifference): Coord = lld.a match {
     case X => Coord(x + lld.len, y, z)
     case Y => Coord(x, y + lld.len, z)
     case Z => Coord(x, y, z + lld.len)
@@ -57,10 +57,19 @@ case class Coord(x: Int, y: Int, z: Int) {
   def +(nd: NCD): Coord =
     Coord(x + nd.dx, y + nd.dy, z + nd.dz)
 
-  def rangeTo(lld: LLD): List[Coord] =
-    if (lld.len == 0) List(this)
-    else if (lld.len > 0) (this + lld) :: rangeTo(lld.copy(len = lld.len - 1))
-    else (this + lld) :: rangeTo(lld.copy(len = lld.len + 1))
+  def rangeTo(cd: CoordinateDifference): List[Coord] =
+    if (cd.len == 0) List(this)
+    else (this + cd) :: rangeTo(cd match {
+      case LLD(a, len) => LLD(a, len + (if (len > 0) -1 else 1))
+      case SLD(a, len) => SLD(a, len + (if (len > 0) -1 else 1))
+    })
+
+  def manhattanDistanceTo(coord: Coord): Int =
+    math.abs(coord.x - x) + math.abs(coord.y - y) + math.abs(coord.z - z)
+}
+
+object Coord {
+  implicit val ordering: Ordering[Coord] = Ordering.by(o => (o.x, o.y, o.z))
 }
 
 sealed trait Command {
@@ -107,13 +116,18 @@ case class Fill(nd: NCD) extends Command {
   val encoded = Vector((11.b + (nd.encoded << 3)).toByte)
 }
 
-case class LLD(a: Dir, len: Int) {
+trait CoordinateDifference {
+  def a: Dir
+  def len: Int
+}
+
+case class LLD(a: Dir, len: Int) extends CoordinateDifference {
   require(len >= -15 && len <= 15)
 
   def i = len + 15
 }
 
-case class SLD(a: Dir, len: Int) {
+case class SLD(a: Dir, len: Int) extends CoordinateDifference {
   require(len >= -5 && len <= 5)
 
   def i = len + 5
