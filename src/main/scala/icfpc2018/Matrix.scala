@@ -151,7 +151,7 @@ case class Matrix(
       f = prev(f)._1
     }
 
-    return path.reverse.toList
+    path.reverse.toList
   }
 }
 
