@@ -1,5 +1,7 @@
 package icfpc2018
 
+import scala.collection.SortedSet
+
 object Extensions {
   implicit class IntToBase(val digits: Int) extends AnyVal {
     def base(b: Int) = Integer.parseInt(digits.toString, b).toByte
@@ -11,9 +13,17 @@ object Extensions {
 
 import Extensions._
 
-sealed trait Harmonics
-case object Low extends Harmonics
-case object High extends Harmonics
+sealed trait Harmonics {
+  def flipped: Harmonics
+}
+
+case object Low extends Harmonics {
+  val flipped = High
+}
+
+case object High extends Harmonics {
+  val flipped = Low
+}
 
 sealed trait Voxel
 case object Full extends Voxel
@@ -23,19 +33,33 @@ case class State(
   energy: Int,
   harmonics: Harmonics,
   matrix: Matrix,
-  bots: Set[Bot],
+  bots: SortedSet[Bot],
   trace: List[Command])
 
 case class Bot(
   bid: Int,
   pos: Coord,
-  seeds: Set[Int])
+  seeds: SortedSet[Int])
 
 case class Coord(x: Int, y: Int, z: Int) {
+
   lazy val neighbors: List[Coord] = List(
     Coord(x - 1, y, z), Coord(x + 1, y, z),
     Coord(x, y - 1, z), Coord(x, y + 1, z),
     Coord(x, y, z - 1), Coord(x, y, z + 1))
+
+  def +(lld: LLD): Coord = lld.a match {
+    case X => Coord(x + lld.len, y, z)
+    case Y => Coord(x, y + lld.len, z)
+    case Z => Coord(x, y, z + lld.len)
+  }
+
+  def +(nd: NCD): Coord =
+    Coord(x + nd.dx, y + nd.dy, z + nd.dz)
+
+  def rangeTo(lld: LLD): List[Coord] =
+    if (lld.len == 0) List(this)
+    else (this + lld) :: rangeTo(lld.copy(len = lld.len - 1))
 }
 
 sealed trait Command {
