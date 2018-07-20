@@ -15,29 +15,49 @@ object Simulator {
 
   implicit val botOrdering = Ordering.by[Bot, Int](_.bid)
 
+  def runAndValidate(model: Matrix, trace: List[Command]): State = {
+    runAndValidate(initialState(model, trace), model)
+  }
+
+  def runAndValidate(st: State, model: Matrix): State = {
+    val finalSt = run(st, model)
+    if (finalSt.matrix.voxels != model.voxels) {
+      throw SimulatorException("The final matrix does not match the provided model", st)
+    }
+    if (finalSt.bots.nonEmpty) {
+      throw SimulatorException("The last command was not a Halt", st)
+    }
+    finalSt
+  }
+
+  def run(model: Matrix, trace: List[Command]): State = {
+    run(initialState(model, trace), model)
+  }
+
   def run(st: State, model: Matrix): State = {
     if (st.trace.isEmpty) st
     else run(nextTick(st, model), model)
   }
 
   def nextTick(st: State, model: Matrix): State = {
-    val (newSt, allVolCoords) = st.bots.foldLeft((st, List.empty[Coord])) {
+    val harmonicsCost = if (st.harmonics == High) 30L else 3L
+    val initialUpdSt = st.copy(energy = st.energy +
+      harmonicsCost * model.dimension * model.dimension * model.dimension +
+      20 * st.bots.size)
+
+    val (newSt, allVolCoords) = initialUpdSt.bots.foldLeft((initialUpdSt, List.empty[Coord])) {
       case ((st, volCoords), bot) =>
         val (newSt, vol) = nextCmd(st.copy(trace = st.trace.tail), model, bot, st.trace.head)
         (newSt, vol ::: volCoords)
     }
 
     if (allVolCoords.length != allVolCoords.distinct.length) {
-      throw ConflictingVolatileCoordsException("Conflicting volatile coordinates", allVolCoords, st)
+      throw ConflictingVolatileCoordsException("Conflicting volatile coordinates", allVolCoords, newSt)
     }
     if (newSt.harmonics == Low && !newSt.matrix.isGrounded) {
-      throw SimulatorException("Matrix is not grounded", st)
+      throw SimulatorException("Matrix is not grounded", newSt)
     }
-
-    val harmonicsCost = if (st.harmonics == High) 30 else 3
-    st.copy(energy = st.energy +
-      harmonicsCost * model.dimension * model.dimension * model.dimension +
-      20 * newSt.bots.size)
+    newSt
   }
 
   def nextCmd(st: State, model: Matrix, bot: Bot, cmd: Command): (State, List[Coord]) = cmd match {
@@ -67,7 +87,7 @@ object Simulator {
       }
 
       val newBot = bot.copy(pos = cPrime)
-      (st.copy(energy = st.energy + 2 * lld.len, bots = st.bots - bot + newBot), thisVolCoords)
+      (st.copy(energy = st.energy + 2 * math.abs(lld.len), bots = st.bots - bot + newBot), thisVolCoords)
 
     case LMove(sld1, sld2) =>
       val (st1, vol1) = nextCmd(st, model, bot, SMove(LLD(sld1.a, sld1.len)))
@@ -120,5 +140,14 @@ object Simulator {
         throw CommandException(s"Invalid primary bot", cmd, st, bot)
       }
       (st, Nil)
+  }
+
+  private[this] def initialState(model: Matrix, trace: List[Command]): State = {
+    State(
+      0,
+      Low,
+      Matrix(model.dimension),
+      bots = SortedSet(Bot(1, Coord(0, 0, 0), SortedSet(2 to 20: _*))),
+      trace)
   }
 }
