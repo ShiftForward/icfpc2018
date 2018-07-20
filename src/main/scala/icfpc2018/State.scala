@@ -30,7 +30,7 @@ case object Full extends Voxel
 case object Void extends Voxel
 
 case class State(
-  energy: Int,
+  energy: Long,
   harmonics: Harmonics,
   matrix: Matrix,
   bots: SortedSet[Bot],
@@ -59,7 +59,8 @@ case class Coord(x: Int, y: Int, z: Int) {
 
   def rangeTo(lld: LLD): List[Coord] =
     if (lld.len == 0) List(this)
-    else (this + lld) :: rangeTo(lld.copy(len = lld.len - 1))
+    else if (lld.len > 0) (this + lld) :: rangeTo(lld.copy(len = lld.len - 1))
+    else (this + lld) :: rangeTo(lld.copy(len = lld.len + 1))
 }
 
 sealed trait Command {
