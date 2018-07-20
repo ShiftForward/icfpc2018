@@ -16,13 +16,13 @@ case object Low extends Harmonics
 case object High extends Harmonics
 
 sealed trait Voxel
-case object Full
-case object Void
+case object Full extends Voxel
+case object Void extends Voxel
 
 case class State(
   energy: Int,
   harmonics: Harmonics,
-  matrix: Vector[Vector[Voxel]],
+  matrix: Matrix,
   bots: Set[Bot],
   trace: List[Command])
 
