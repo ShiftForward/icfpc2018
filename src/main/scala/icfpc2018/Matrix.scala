@@ -1,6 +1,11 @@
 package icfpc2018
 
-case class Matrix(dimension: Int, voxels: Map[Coord, Voxel]) {
+import java.io.File
+import java.nio.file.Files
+
+import scala.io.Source
+
+case class Matrix(dimension: Int, voxels: Map[Coord, Voxel] = Map.empty) {
 
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
@@ -23,4 +28,37 @@ case class Matrix(dimension: Int, voxels: Map[Coord, Voxel]) {
     copy(voxels = voxels.updated(coord, Full))
   }
 
+}
+
+object Matrix {
+  def fromMdl(mdlFile: File): Matrix = {
+    val bytes: Array[Byte] = Files.readAllBytes(mdlFile.toPath)
+    val matrix = Matrix(0xFF & bytes(0).asInstanceOf[Int])
+    var z = 0
+    var x = 0
+    var y = 0
+    bytes.drop(1).foldLeft(matrix) {
+      case (m, b) =>
+        (0 until 8).foldLeft(m) {
+          case (m, i) =>
+            val nextM = if ((b & (1 << i)) != 0)
+              m.fill(Coord(x, y, z))
+            else
+              m
+
+            z += 1
+            if (z >= matrix.dimension) {
+              z = 0
+              y += 1
+            }
+
+            if (y >= matrix.dimension) {
+              y = 0
+              x += 1
+            }
+
+            nextM
+        }
+    }
+  }
 }
