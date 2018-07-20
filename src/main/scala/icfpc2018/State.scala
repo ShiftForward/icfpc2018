@@ -1,6 +1,7 @@
 package icfpc2018
 
 import scala.collection.SortedSet
+import scala.util.Try
 
 object Extensions {
   implicit class IntToBase(val digits: Int) extends AnyVal {
@@ -127,6 +128,15 @@ case class LLD(a: Dir, len: Int) extends CoordinateDifference {
   def i = len + 15
 }
 
+case object LLD {
+  def forMove(c1: Coord, c2: Coord): Option[LLD] = (c1, c2) match {
+    case (Coord(x1, y1, z1), Coord(x2, y2, z2)) if math.abs(x1 - x2) <= 15 && y1 == y2 && z1 == z2 => Some(LLD(X, x2 - x1))
+    case (Coord(x1, y1, z1), Coord(x2, y2, z2)) if math.abs(y1 - y2) <= 15 && x1 == x2 && z1 == z2 => Some(LLD(Y, y2 - y1))
+    case (Coord(x1, y1, z1), Coord(x2, y2, z2)) if math.abs(z1 - z2) <= 15 && x1 == x2 && y1 == y2 => Some(LLD(Z, z2 - z1))
+    case _ => None
+  }
+}
+
 case class SLD(a: Dir, len: Int) extends CoordinateDifference {
   require(len >= -5 && len <= 5)
 
@@ -142,6 +152,12 @@ case class NCD(dx: Int, dy: Int, dz: Int) {
   require {
     val mlen = math.abs(dx) + math.abs(dy) + math.abs(dz)
     mlen >= 1 && mlen <= 2
+  }
+}
+
+case object NCD {
+  def forMove(c1: Coord, c2: Coord): Option[NCD] = {
+    Try(NCD(c2.x - c1.x, c2.y - c1.y, c2.z - c1.z)).toOption
   }
 }
 
