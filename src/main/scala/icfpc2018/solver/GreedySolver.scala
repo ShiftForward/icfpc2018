@@ -15,6 +15,9 @@ object GreedySolver extends SimpleSolver {
     var currentModel = Matrix(model.dimension)
     var requestedHarmonics = false
 
+    commands += SMove(LLD(Y, 1))
+    currentCoord = Coord(0, 1, 0)
+
     toPaint.toList.sortBy(_._1).foreach {
       case (y, points) =>
         var pointsToPaint = points
@@ -47,6 +50,9 @@ object GreedySolver extends SimpleSolver {
           currentModel = currentModel.fill(nextToPaint)
           pointsToPaint = pointsToPaint - nextToPaint
         }
+
+        commands += SMove(LLD(Y, 1))
+        currentCoord = currentCoord.copy(y = currentCoord.y + 1)
     }
     (commands.toList, currentModel, currentCoord)
   }
