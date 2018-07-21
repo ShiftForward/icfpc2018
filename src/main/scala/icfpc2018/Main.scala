@@ -4,7 +4,6 @@ import java.io.{ BufferedOutputStream, FileOutputStream }
 import java.nio.file.{ Files, Paths }
 
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 import icfpc2018.solver._
 
@@ -26,12 +25,13 @@ object Main extends App {
 
   def export(commands: List[Command], filename: String): String = {
     val output = commands.flatMap(_.encoded).toArray
-    val outputFilename = "output/" + filename + ".nbt"
+    val outputFilename = "output/" + filename.take(5) + ".nbt"
     val bos = new BufferedOutputStream(new FileOutputStream(outputFilename))
     bos.write(output)
     bos.close()
     outputFilename
   }
+
   models.foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
