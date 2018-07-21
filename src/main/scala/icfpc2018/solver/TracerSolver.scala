@@ -5,12 +5,12 @@ import scala.collection.mutable
 import icfpc2018._
 
 object TracerSolver extends Solver {
-  def solve(model: Matrix): List[Command] = {
+  def baseSolve(model: Matrix, from: Coord): (List[Command], Matrix, Coord) = {
     var dx = 1
     var dz = 1
-    var x = 0
-    var y = 0
-    var z = 0
+    var x = from.x
+    var y = from.y
+    var z = from.z
     val commands = mutable.ListBuffer[Command]()
     val len = model.dimension * model.dimension * model.dimension
     commands += Flip
@@ -68,9 +68,6 @@ object TracerSolver extends Solver {
       commands += SMove(LLD(Y, dist))
       y += dist
     }
-
-    commands += Flip
-    commands += Halt
-    commands.toList
+    (commands.toList, model, Coord(0, 0, 0))
   }
 }

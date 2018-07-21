@@ -6,11 +6,11 @@ import icfpc2018._
 import icfpc2018.solver.pathing.AStarPathFinder
 
 object GreedySolver extends Solver {
-  def solve(model: Matrix): List[Command] = {
+  def baseSolve(model: Matrix, from: Coord): (List[Command], Matrix, Coord) = {
     val toPaint = model.voxels.groupBy(_.y)
     val commands = mutable.ListBuffer[Command]()
 
-    var currentCoord = Coord(0, 0, 0)
+    var currentCoord = from
     var currentModel = Matrix(model.dimension)
     var flipped = false
 
@@ -39,15 +39,6 @@ object GreedySolver extends Solver {
           currentModel = currentModel.fill(coord)
         }
     }
-
-    if (flipped)
-      commands += Flip
-
-    val pf = new AStarPathFinder(currentModel)
-
-    commands ++= pf.findPath(currentCoord, Coord(0, 0, 0))
-    commands += Halt
-
-    commands.toList
+    (commands.toList, currentModel, currentCoord)
   }
 }
