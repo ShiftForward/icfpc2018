@@ -4,15 +4,16 @@ import scala.collection.mutable
 
 import icfpc2018._
 import icfpc2018.solver.pathing.AStarPathFinder
+import icfpc2018.solver.SolverDSL._
 
-object GreedySolver extends Solver {
-  def solve(model: Matrix): List[Command] = {
+object GreedySolver extends SimpleSolver {
+  def baseSolve(model: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
     val toPaint = model.voxels.groupBy(_.y)
-    val commands = mutable.ListBuffer[Command]()
+    val commands = mutable.ListBuffer[SolverCommand]()
 
-    var currentCoord = Coord(0, 0, 0)
+    var currentCoord = from
     var currentModel = Matrix(model.dimension)
-    var flipped = false
+    var requestedHarmonics = false
 
     toPaint.toList.sortBy(_._1).foreach {
       case (y, points) =>
@@ -25,21 +26,21 @@ object GreedySolver extends Solver {
           else
             pointsToPaint.toList.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
 
-          if (flipped && currentModel.isGrounded) {
-            commands += Flip
-            flipped = false
+          if (requestedHarmonics && currentModel.isGrounded) {
+            commands += ReleaseHarmonics
+            requestedHarmonics = false
           }
 
           val pf = new AStarPathFinder(currentModel)
 
           val coordToMove = nextToPaint.copy(y = nextToPaint.y + 1)
-          commands ++= pf.findPath(currentCoord, coordToMove)
-          if (flipped || currentModel.supported(nextToPaint))
+          commands ++= pf.findPath(currentCoord, coordToMove).map(RawCommand)
+          if (requestedHarmonics || currentModel.supported(nextToPaint))
             commands += Fill(NCD(0, -1, 0))
           else {
-            commands += Flip
+            commands += RequireHarmonics
+            requestedHarmonics = true
             commands += Fill(NCD(0, -1, 0))
-            flipped = true
           }
 
           currentCoord = coordToMove
@@ -47,15 +48,6 @@ object GreedySolver extends Solver {
           pointsToPaint = pointsToPaint - nextToPaint
         }
     }
-
-    if (flipped)
-      commands += Flip
-
-    val pf = new AStarPathFinder(currentModel)
-
-    commands ++= pf.findPath(currentCoord, Coord(0, 0, 0))
-    commands += Halt
-
-    commands.toList
+    (commands.toList, currentModel, currentCoord)
   }
 }

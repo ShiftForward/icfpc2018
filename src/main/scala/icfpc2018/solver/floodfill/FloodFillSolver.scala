@@ -8,7 +8,6 @@ import icfpc2018.solver.pathing.BfsPathFinder
 case class FloodFillSolver(postOrder: Boolean = true) extends Solver {
 
   def solve(model: Matrix): List[Command] = {
-
     def aux(coords: List[Coord], auxState: State): List[Command] = {
       assert(
         auxState.bots.head.pos == coords.head,

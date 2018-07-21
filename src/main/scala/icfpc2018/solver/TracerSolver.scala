@@ -3,17 +3,18 @@ package icfpc2018.solver
 import scala.collection.mutable
 
 import icfpc2018._
+import icfpc2018.solver.SolverDSL.{ RequireHarmonics, SolverCommand }
 
-object TracerSolver extends Solver {
-  def solve(model: Matrix): List[Command] = {
+object TracerSolver extends SimpleSolver {
+  def baseSolve(model: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
     var dx = 1
     var dz = 1
-    var x = 0
-    var y = 0
-    var z = 0
-    val commands = mutable.ListBuffer[Command]()
+    var x = from.x
+    var y = from.y
+    var z = from.z
+    val commands = mutable.ListBuffer[SolverCommand]()
     val len = model.dimension * model.dimension * model.dimension
-    commands += Flip
+    commands += RequireHarmonics
 
     (0 until len - 1).foreach { _ =>
       val currentCoord = Coord(x, y, z)
@@ -68,9 +69,6 @@ object TracerSolver extends Solver {
       commands += SMove(LLD(Y, dist))
       y += dist
     }
-
-    commands += Flip
-    commands += Halt
-    commands.toList
+    (commands.toList, model, Coord(0, 0, 0))
   }
 }
