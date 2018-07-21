@@ -51,8 +51,10 @@ object GreedySolver extends SimpleSolver {
           pointsToPaint = pointsToPaint - nextToPaint
         }
 
-        commands += SMove(LLD(Y, 1))
-        currentCoord = currentCoord.copy(y = currentCoord.y + 1)
+        if (currentCoord.y + 1 < model.dimension) {
+          commands += SMove(LLD(Y, 1))
+          currentCoord = currentCoord.copy(y = currentCoord.y + 1)
+        }
     }
     (commands.toList, currentModel, currentCoord)
   }
