@@ -78,43 +78,49 @@ sealed trait Command {
 }
 
 case object Halt extends Command {
-  val encoded = Vector(11111111.b)
+  final val encoded = Vector(11111111.b)
 }
 
 case object Wait extends Command {
-  val encoded = Vector(11111110.b)
+  final val encoded = Vector(11111110.b)
 }
 
 case object Flip extends Command {
-  val encoded = Vector(11111101.b)
+  final val encoded = Vector(11111101.b)
 }
 
 case class SMove(lld: LLD) extends Command {
-  val encoded = Vector(
-    (100.b + (lld.a.encoded.toInt << 4)).toByte,
+  final val header = 100.b
+  lazy val encoded = Vector(
+    (header + (lld.a.encoded.toInt << 4)).toByte,
     lld.i.toByte)
 }
 
 case class LMove(sld1: SLD, sld2: SLD) extends Command {
-  val encoded = Vector(
-    (1100.b + (sld1.a.encoded.toInt << 4) + (sld2.a.encoded.toInt << 6)).toByte,
+  final val header = 1100.b
+  lazy val encoded = Vector(
+    (header + (sld1.a.encoded.toInt << 4) + (sld2.a.encoded.toInt << 6)).toByte,
     ((sld2.i << 4) + sld1.i).toByte)
 }
 
 case class FusionP(nd: NCD) extends Command {
-  val encoded = Vector((111.b + (nd.encoded << 3)).toByte)
+  final val header = 111.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
 }
 
 case class FusionS(nd: NCD) extends Command {
-  val encoded = Vector((110.b + (nd.encoded << 3)).toByte)
+  final val header = 110.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
 }
 
 case class Fission(nd: NCD, m: Int) extends Command {
-  val encoded = Vector((101.b + (nd.encoded << 3)).toByte, m.toByte)
+  final val header = 101.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, m.toByte)
 }
 
 case class Fill(nd: NCD) extends Command {
-  val encoded = Vector((11.b + (nd.encoded << 3)).toByte)
+  final val header = 11.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
 }
 
 trait CoordinateDifference {
@@ -144,7 +150,7 @@ case class SLD(a: Dir, len: Int) extends CoordinateDifference {
 }
 
 case class NCD(dx: Int, dy: Int, dz: Int) {
-  def encoded: Int = (dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)
+  lazy val encoded: Int = (dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)
 
   require(math.abs(dx) <= 1)
   require(math.abs(dy) <= 1)
@@ -166,13 +172,13 @@ sealed trait Dir {
 }
 
 case object X extends Dir {
-  val encoded = 1.b
+  final val encoded = 1.b
 }
 
 case object Y extends Dir {
-  val encoded = 10.b
+  final val encoded = 10.b
 }
 
 case object Z extends Dir {
-  val encoded = 11.b
+  final val encoded = 11.b
 }
