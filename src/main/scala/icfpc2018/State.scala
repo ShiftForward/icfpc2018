@@ -128,6 +128,21 @@ case class Fill(nd: NCD) extends Command {
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
 }
 
+case class Void(nd: NCD) extends Command {
+  final val header = 10.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
+}
+
+case class GFill(nd: NCD, fd: FCD) extends Command {
+  final val header = 100.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (0xFF & fd.dx).toByte, (0xFF & fd.dy).toByte, (0xFF & fd.dz).toByte)
+}
+
+case class GVoid(nd: NCD, fd: FCD) extends Command {
+  final val header = 0.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (0xFF & fd.dx).toByte, (0xFF & fd.dy).toByte, (0xFF & fd.dz).toByte)
+}
+
 trait CoordinateDifference {
   def a: Dir
   def len: Int
@@ -170,6 +185,13 @@ case object NCD {
   def forMove(c1: Coord, c2: Coord): Option[NCD] = {
     Try(NCD(c2.x - c1.x, c2.y - c1.y, c2.z - c1.z)).toOption
   }
+}
+
+case class FCD(dx: Int, dy: Int, dz: Int) {
+  require(math.abs(dx) <= 30)
+  require(math.abs(dy) <= 30)
+  require(math.abs(dz) <= 30)
+  require(dx != 0 || dy != 0 || dz != 0)
 }
 
 sealed trait Dir {
