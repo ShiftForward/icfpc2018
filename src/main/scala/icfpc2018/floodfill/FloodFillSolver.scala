@@ -37,8 +37,8 @@ object FloodFillSolver extends Solver {
     }
 
     val initialState = Simulator.run(model, Nil)
-    val groundVoxel = model.voxels.filterKeys(_.y == 0).head._1
-    val fillStrategy = fill(groundVoxel, model)
+    val groundVoxel = model.voxels.filter(_.y == 0).head
+    val fillStrategy = FloodFill.fill(groundVoxel, model)
 
     val newMoves = PathFinder.findPath(Coord(0, 0, 0), groundVoxel, initialState.matrix).get
     val newAuxState = Simulator.run(initialState.copy(trace = newMoves), model)
