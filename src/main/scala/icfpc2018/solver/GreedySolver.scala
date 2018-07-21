@@ -16,8 +16,15 @@ object GreedySolver extends Solver {
 
     toPaint.toList.sortBy(_._1).foreach {
       case (y, points) =>
-        val nextToPaint = points.toList.sortBy(currentCoord.manhattanDistanceTo)
-        nextToPaint.foreach { coord =>
+        var pointsToPaint = points
+
+        while (pointsToPaint.nonEmpty) {
+          val grounded = pointsToPaint.filter(currentModel.supported)
+          val nextToPaint = if (grounded.nonEmpty)
+            grounded.toList.sortBy(_.manhattanDistanceTo(Coord(0, 0, 0))).head
+          else
+            pointsToPaint.toList.sortBy(_.manhattanDistanceTo(Coord(0, 0, 0))).head
+
           if (flipped && currentModel.isGrounded) {
             commands += Flip
             flipped = false
@@ -25,9 +32,9 @@ object GreedySolver extends Solver {
 
           val pf = new AStarPathFinder(currentModel)
 
-          val coordToMove = coord.copy(y = coord.y + 1)
+          val coordToMove = nextToPaint.copy(y = nextToPaint.y + 1)
           commands ++= pf.findPath(currentCoord, coordToMove)
-          if (flipped || currentModel.supported(coord))
+          if (flipped || currentModel.supported(nextToPaint))
             commands += Fill(NCD(0, -1, 0))
           else {
             commands += Flip
@@ -36,7 +43,8 @@ object GreedySolver extends Solver {
           }
 
           currentCoord = coordToMove
-          currentModel = currentModel.fill(coord)
+          currentModel = currentModel.fill(nextToPaint)
+          pointsToPaint = pointsToPaint - nextToPaint
         }
     }
 
