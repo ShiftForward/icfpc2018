@@ -58,12 +58,15 @@ case class Coord(x: Int, y: Int, z: Int) {
   def +(nd: NCD): Coord =
     Coord(x + nd.dx, y + nd.dy, z + nd.dz)
 
-  def rangeTo(cd: CoordinateDifference): List[Coord] =
-    if (cd.len == 0) List(this)
-    else (this + cd) :: rangeTo(cd match {
+  def rangeToIterator(cd: CoordinateDifference): Iterator[Coord] = {
+    def nextCd(cd: CoordinateDifference) = cd match {
       case LLD(a, len) => LLD(a, len + (if (len > 0) -1 else 1))
       case SLD(a, len) => SLD(a, len + (if (len > 0) -1 else 1))
-    })
+    }
+    Iterator.iterate(cd)(nextCd).takeWhile(_.len != 0).map(cd => this + cd) ++ Iterator(this)
+  }
+
+  def rangeTo(cd: CoordinateDifference): List[Coord] = rangeToIterator(cd).toList
 
   def manhattanDistanceTo(coord: Coord): Int =
     math.abs(coord.x - x) + math.abs(coord.y - y) + math.abs(coord.z - z)

@@ -15,7 +15,7 @@ class AStarPathFinder(model: Matrix) {
       if (i != 0) {
         dirs.foreach { dir =>
           val lld = LLD(dir, i)
-          if (validDir(dir)(math.signum(i)) && from.rangeTo(lld).forall(x => model.validateCoord(x) && model.get(x) == Void)) {
+          if (validDir(dir)(math.signum(i)) && from.rangeToIterator(lld).forall(x => model.validateCoord(x) && model.get(x) == Void)) {
             val nextCoord = from + lld
             valids += SMove(lld)
             if (math.abs(i) <= 5) {
@@ -24,7 +24,7 @@ class AStarPathFinder(model: Matrix) {
                   (-5 to 5).foreach { j =>
                     if (j != 0) {
                       val sld = SLD(otherDir, j)
-                      if (nextCoord.rangeTo(sld).forall(x => model.validateCoord(x) && model.get(x) == Void)) {
+                      if (nextCoord.rangeToIterator(sld).forall(x => model.validateCoord(x) && model.get(x) == Void)) {
                         valids += LMove(SLD(dir, i), sld)
                       }
                     }
