@@ -7,10 +7,7 @@ import icfpc2018.solver.pathing.BfsPathFinder
 // with pre-order (no need for high harmonics) this always seems to get stuck :(
 case class FloodFillSolver(postOrder: Boolean = true) extends Solver {
 
-  // FIXME
-  def baseSolve(model: Matrix, from: Coord): (List[Command], Matrix, Coord) = ???
-
-  override def solve(model: Matrix): List[Command] = {
+  def solve(model: Matrix): List[Command] = {
     def aux(coords: List[Coord], auxState: State): List[Command] = {
       assert(
         auxState.bots.head.pos == coords.head,
