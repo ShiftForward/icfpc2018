@@ -21,9 +21,9 @@ object GreedySolver extends Solver {
         while (pointsToPaint.nonEmpty) {
           val grounded = pointsToPaint.filter(currentModel.supported)
           val nextToPaint = if (grounded.nonEmpty)
-            grounded.toList.sortBy(_.manhattanDistanceTo(Coord(0, 0, 0))).head
+            grounded.toList.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
           else
-            pointsToPaint.toList.sortBy(_.manhattanDistanceTo(Coord(0, 0, 0))).head
+            pointsToPaint.toList.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
 
           if (flipped && currentModel.isGrounded) {
             commands += Flip
