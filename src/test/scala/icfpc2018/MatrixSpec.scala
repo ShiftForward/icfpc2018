@@ -1,5 +1,8 @@
 package icfpc2018
 
+import scala.util.Random
+
+import icfpc2018.Matrix.CoordSet
 import org.specs2.mutable.Specification
 
 class MatrixSpec extends Specification {
@@ -22,6 +25,24 @@ class MatrixSpec extends Specification {
       groundedMatrix.voxels.size === 3
       groundedMatrix.groundedVoxels.size === 3
       groundedMatrix.ungroundedVoxels.size === 0
+    }
+
+    "have an optimized CoordSet" in {
+      val randomCoords = (1 to 100).map { _ =>
+        Coord(Random.nextInt(250), Random.nextInt(250), Random.nextInt(250))
+      }.toSet
+      val coordSet = randomCoords.foldLeft(CoordSet())(_ + _)
+
+      coordSet.iterator.toSet === randomCoords
+
+      val (coordsToRemove, coordsToKeep) = randomCoords.splitAt(25)
+      val coordSetToRemove = coordsToRemove.foldLeft(CoordSet())(_ + _)
+
+      val coordSetToKeep = coordSet -- coordSetToRemove
+      coordSetToKeep.iterator.toSet === coordsToKeep
+
+      (coordSetToKeep ++ coordSetToRemove).iterator.toSet === randomCoords
+
     }
   }
 }

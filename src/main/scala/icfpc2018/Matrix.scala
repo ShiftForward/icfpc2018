@@ -4,12 +4,14 @@ import java.io.File
 import java.nio.file.Files
 
 import scala.annotation.tailrec
-import scala.collection.mutable
+import scala.collection.BitSet
+
+import icfpc2018.Matrix.CoordSet
 
 case class Matrix(
   dimension: Int,
-  groundedVoxels: Set[Coord] = Set.empty,
-  ungroundedVoxels: Set[Coord] = Set.empty) {
+  groundedVoxels: CoordSet = CoordSet(),
+  ungroundedVoxels: CoordSet = CoordSet()) {
 
   lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
 
@@ -33,12 +35,12 @@ case class Matrix(
     coord.y == 0 || coord.neighbors.filter(validateCoord).exists(groundedVoxels)
   lazy val isGrounded: Boolean = ungroundedVoxels.isEmpty
 
-  private[this] def updatedGrounded(newCoord: Coord): (Set[Coord], Set[Coord]) = {
-    val (groundedInit, ungroundedInit): (Set[Coord], Set[Coord]) =
+  private[this] def updatedGrounded(newCoord: Coord): (CoordSet, CoordSet) = {
+    val (groundedInit, ungroundedInit): (CoordSet, CoordSet) =
       if (supported(newCoord)) (groundedVoxels + newCoord, ungroundedVoxels)
       else (groundedVoxels, ungroundedVoxels + newCoord)
     @tailrec
-    def aux(groundedAccum: Set[Coord], ungroundedAccum: Set[Coord]): (Set[Coord], Set[Coord]) = {
+    def aux(groundedAccum: CoordSet, ungroundedAccum: CoordSet): (CoordSet, CoordSet) = {
       val canBeGrounded = ungroundedAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
       if (canBeGrounded.isEmpty) (groundedAccum, ungroundedAccum)
       else {
@@ -64,6 +66,21 @@ case class Matrix(
 }
 
 object Matrix {
+
+  case class CoordSet(innerBuffer: BitSet = BitSet.empty) extends Set[Coord] {
+    @inline
+    final def fromBinary(binary: Int): Coord = Coord((binary >> 16) & 0xFF, (binary >> 8) & 0xFF, binary & 0xFF)
+
+    override def contains(elem: Coord): Boolean = innerBuffer(elem.toBinary)
+    override def +(elem: Coord): CoordSet = copy(innerBuffer + elem.toBinary)
+    def ++(that: CoordSet): CoordSet = CoordSet(this.innerBuffer | that.innerBuffer)
+    override def -(elem: Coord): CoordSet = copy(innerBuffer - elem.toBinary)
+    def --(that: CoordSet): CoordSet = CoordSet(this.innerBuffer &~ that.innerBuffer)
+    override def filter(p: Coord => Boolean): CoordSet = CoordSet(
+      innerBuffer.filter(x => p(fromBinary(x))))
+    override def iterator: Iterator[Coord] = innerBuffer.iterator.map(fromBinary)
+  }
+
   def fromMdl(mdlFile: File): Matrix = {
     val bytes: Array[Byte] = Files.readAllBytes(mdlFile.toPath)
     val matrix = Matrix(0xFF & bytes(0).asInstanceOf[Int])

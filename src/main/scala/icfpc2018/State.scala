@@ -70,6 +70,8 @@ case class Coord(x: Int, y: Int, z: Int) {
 
   def manhattanDistanceTo(coord: Coord): Int =
     math.abs(coord.x - x) + math.abs(coord.y - y) + math.abs(coord.z - z)
+
+  lazy val toBinary: Int = (x << 16) | (y << 8) | z
 }
 
 object Coord {
