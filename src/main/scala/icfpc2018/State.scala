@@ -134,13 +134,13 @@ case class Void(nd: NCD) extends Command {
 }
 
 case class GFill(nd: NCD, fd: FCD) extends Command {
-  final val header = 100.b
-  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (0xFF & fd.dx).toByte, (0xFF & fd.dy).toByte, (0xFF & fd.dz).toByte)
+  final val header = 1.b
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (fd.dx + 30).toByte, (fd.dy + 30).toByte, (fd.dz + 30).toByte)
 }
 
 case class GVoid(nd: NCD, fd: FCD) extends Command {
   final val header = 0.b
-  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (0xFF & fd.dx).toByte, (0xFF & fd.dy).toByte, (0xFF & fd.dz).toByte)
+  lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (fd.dx + 30).toByte, (fd.dy + 30).toByte, (fd.dz + 30).toByte)
 }
 
 trait CoordinateDifference {
