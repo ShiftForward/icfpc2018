@@ -1,6 +1,6 @@
 package icfpc2018
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
 trait Solver {
   def solve(model: Matrix): List[Command]
@@ -13,7 +13,7 @@ object Tracer extends Solver {
     var x = 0
     var y = 0
     var z = 0
-    val commands = ListBuffer[Command]()
+    val commands = mutable.ListBuffer[Command]()
     val len = model.dimension * model.dimension * model.dimension
     commands += Flip
 
@@ -73,6 +73,49 @@ object Tracer extends Solver {
 
     commands += Flip
     commands += Halt
+    commands.toList
+  }
+}
+
+object GreedySolver extends Solver {
+  def solve(model: Matrix): List[Command] = {
+    val toPaint = model.voxels.groupBy(_.y)
+    val commands = mutable.ListBuffer[Command]()
+
+    var currentCoord = Coord(0, 0, 0)
+    var currentModel = Matrix(model.dimension)
+    var flipped = false
+
+    toPaint.toList.sortBy(_._1).foreach {
+      case (y, points) =>
+        val nextToPaint = points.toList.sortBy(currentCoord.manhattanDistanceTo)
+        nextToPaint.foreach { coord =>
+          if (flipped && currentModel.isGrounded) {
+            commands += Flip
+            flipped = false
+          }
+
+          val coordToMove = coord.copy(y = coord.y + 1)
+          commands ++= currentModel.path(currentCoord, coordToMove)
+          if (flipped || currentModel.supported(coord))
+            commands += Fill(NCD(0, -1, 0))
+          else {
+            commands += Flip
+            commands += Fill(NCD(0, -1, 0))
+            flipped = true
+          }
+
+          currentCoord = coordToMove
+          currentModel = currentModel.fill(coord)
+        }
+    }
+
+    if (flipped)
+      commands += Flip
+
+    commands ++= currentModel.path(currentCoord, Coord(0, 0, 0))
+    commands += Halt
+
     commands.toList
   }
 }
