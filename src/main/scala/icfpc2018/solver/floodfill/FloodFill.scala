@@ -4,7 +4,7 @@ import scala.collection.mutable
 
 import icfpc2018._
 
-class FloodFill(model: Matrix) {
+class FloodFill(model: Matrix, postOrder: Boolean) {
   private val visited: mutable.Set[Coord] = mutable.Set()
   private var coords: List[Coord] = Nil
 
@@ -12,17 +12,23 @@ class FloodFill(model: Matrix) {
     if (coord.y < 0 || model.get(coord) == Void || visited(coord)) {
       return
     }
-    coords = coord :: coords
+    if (!postOrder) {
+      coords = coord :: coords
+    }
     visited += coord
     coord.neighbors.foreach(fill)
+
+    if (postOrder) {
+      coords = coord :: coords
+    }
   }
 }
 
 object FloodFill {
 
-  // returns the list of coordinates to fill (pos-order traversal)
-  def fill(root: Coord, model: Matrix): List[Coord] = {
-    val ff = new FloodFill(model)
+  // returns the list of coordinates to fill
+  def fill(root: Coord, model: Matrix, postOrder: Boolean = false): List[Coord] = {
+    val ff = new FloodFill(model, postOrder)
     ff.fill(root)
     ff.coords.reverse
   }

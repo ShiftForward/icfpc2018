@@ -8,10 +8,10 @@ object Simulator {
     extends Exception(s"$msg\nState: $st")
 
   case class CommandException(msg: String, cmd: Command, st: State, bot: Bot)
-    extends Exception(s"$msg\nCommand: $cmd\n, Bot: $bot\nState: $st")
+    extends Exception(s"$msg\nCommand: $cmd\nBot: $bot\nState: $st")
 
   case class ConflictingVolatileCoordsException(msg: String, volCoords: List[Coord], st: State)
-    extends Exception(s"$msg\nVolatile coords: $volCoords, State: $st")
+    extends Exception(s"$msg\nVolatile coords: $volCoords\nState: $st")
 
   implicit val botOrdering = Ordering.by[Bot, Int](_.bid)
 
