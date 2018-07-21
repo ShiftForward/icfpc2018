@@ -24,10 +24,9 @@ object GreedySolver extends SimpleSolver {
 
         while (pointsToPaint.nonEmpty) {
           val grounded = pointsToPaint.filter(currentModel.supported)
-          val nextToPaint = if (grounded.nonEmpty)
-            grounded.toList.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
-          else
-            pointsToPaint.toList.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
+          val nextToPaint =
+            if (grounded.nonEmpty) zigZagOnX(grounded.toList)
+            else zigZagOnX(pointsToPaint.toList)
 
           if (requestedHarmonics && currentModel.isGrounded) {
             commands += ReleaseHarmonics
@@ -57,5 +56,14 @@ object GreedySolver extends SimpleSolver {
         }
     }
     (commands.toList, currentModel, currentCoord)
+  }
+
+  def nearestToOrigin(pointsToPaint: List[Coord]): Coord = {
+    pointsToPaint.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
+  }
+
+  def zigZagOnX(pointsToPaint: List[Coord]): Coord = {
+    val (minX, points) = pointsToPaint.groupBy(_.x).minBy(_._1)
+    if (minX % 2 == 0) points.minBy(_.z) else points.maxBy(_.z)
   }
 }
