@@ -58,10 +58,6 @@ object GreedySolver extends SimpleSolver {
     (commands.toList, currentModel, currentCoord)
   }
 
-  def nearestToOrigin(current: Coord, pointsToPaint: List[Coord]): Coord = {
-    pointsToPaint.minBy(_.manhattanDistanceTo(Coord(0, 0, 0)))
-  }
-
   def zigZagOnX(current: Coord, pointsToPaint: List[Coord]): Coord = {
     val (_, points) = pointsToPaint.groupBy(_.x).minBy(_._1)
     val minPt = points.minBy(_.z)

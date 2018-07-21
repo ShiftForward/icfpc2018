@@ -51,11 +51,11 @@ case class SplitSolver(innerSolver: SimpleSolver) extends Solver {
     }
 
     val childrenCommands = List(
-      childCommands(quadrants._1, initialMiddle), // NW (1)
-      childCommands(quadrants._2, initialMiddle.copy(x = initialMiddle.x + 1)), // NE (2)
-      childCommands(quadrants._4, initialMiddle.copy(x = initialMiddle.x + 1, z = initialMiddle.z - 1)), // SE (3)
-      childCommands(quadrants._3, initialMiddle.copy(z = initialMiddle.z - 1)) // SW (4)
-    )
+      () => childCommands(quadrants._1, initialMiddle), // NW (1)
+      () => childCommands(quadrants._2, initialMiddle.copy(x = initialMiddle.x + 1)), // NE (2)
+      () => childCommands(quadrants._4, initialMiddle.copy(x = initialMiddle.x + 1, z = initialMiddle.z - 1)), // SE (3)
+      () => childCommands(quadrants._3, initialMiddle.copy(z = initialMiddle.z - 1)) // SW (4)
+    ).par.map(_.apply()).toList
 
     val expectedFinalModel = childrenCommands.flatMap(_._2.voxels.iterator).toSet.foldLeft(emptyMatrix) {
       case (m, v) =>
