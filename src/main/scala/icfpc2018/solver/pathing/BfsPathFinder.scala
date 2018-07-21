@@ -1,10 +1,10 @@
-package icfpc2018.floodfill
+package icfpc2018.solver.pathing
 
 import scala.collection.mutable
 
 import icfpc2018._
 
-class PathFinder(to: Coord, stMatrix: Matrix) {
+class BfsPathFinder(to: Coord, stMatrix: Matrix) {
   private val visited: mutable.Set[Coord] = mutable.Set()
 
   def findPath(initialCoord: Coord): Option[List[Command]] = {
@@ -32,12 +32,12 @@ class PathFinder(to: Coord, stMatrix: Matrix) {
   }
 }
 
-object PathFinder {
+object BfsPathFinder {
 
   // TL;DR the first command must be a SMove with len = 1.
   // TODO: we don't yet support anything other than unit steps here due to FloodFill
   def findPath(from: Coord, to: Coord, stMatrix: Matrix): Option[List[Command]] = {
-    val pf = new PathFinder(to, stMatrix)
+    val pf = new BfsPathFinder(to, stMatrix)
     pf.findPath(from).map(_.reverse)
   }
 }

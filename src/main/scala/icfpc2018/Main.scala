@@ -6,14 +6,16 @@ import java.nio.file.{ Files, Paths }
 import scala.collection.JavaConverters._
 import scala.util.Try
 
+import icfpc2018.solver._
+
 object Main extends App {
 
   val models = Files.list(Paths.get("models", "lightning")).iterator().asScala.toList
     .filter(_.toString.endsWith(".mdl"))
     .sortBy(_.toString)
-  val solver: Solver = Tracer
-  def validate(model: Matrix, solution: List[Command]) = Try(Simulator.runAndValidate(model, solution)).isSuccess
-  //def validate(model: Matrix, solution: List[Command]) = true
+  val solver: Solver = GreedySolver
+  //def validate(model: Matrix, solution: List[Command]) = Try(Simulator.runAndValidate(model, solution)).isSuccess
+  def validate(model: Matrix, solution: List[Command]) = true
 
   def time[T](f: => T): (T, Long) = {
     val startTime = System.currentTimeMillis()

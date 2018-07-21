@@ -1,6 +1,8 @@
-package icfpc2018
+package icfpc2018.solver.pathing
 
 import scala.collection.mutable
+
+import icfpc2018._
 
 class AStarPathFinder(model: Matrix) {
   private[this] def validMoves(from: Coord): List[Command] = {

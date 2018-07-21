@@ -1,4 +1,4 @@
-package icfpc2018.floodfill
+package icfpc2018.solver.floodfill
 
 import scala.collection.mutable
 
