@@ -4,12 +4,12 @@ import java.io.File
 import java.nio.file.Files
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 
 case class Matrix(
   dimension: Int,
   groundedVoxels: Set[Coord] = Set.empty,
   ungroundedVoxels: Set[Coord] = Set.empty) {
+  require(dimension <= 250, "Max matrix dimension is 250")
 
   lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
 
@@ -20,7 +20,7 @@ case class Matrix(
 
   def canFillCoord(coord: Coord): Boolean =
     coord.x >= 1 && coord.x < (dimension - 1) &&
-      coord.y >= 0 && coord.y < dimension &&
+      coord.y >= 0 && coord.y < (dimension - 1) &&
       coord.z >= 1 && coord.z < (dimension - 1) &&
       !voxels.contains(coord)
 
@@ -67,6 +67,7 @@ object Matrix {
   def fromMdl(mdlFile: File): Matrix = {
     val bytes: Array[Byte] = Files.readAllBytes(mdlFile.toPath)
     val matrix = Matrix(0xFF & bytes(0).asInstanceOf[Int])
+    println(s"Loading $mdlFile model file with dimension: ${matrix.dimension}")
     var z = 0
     var x = 0
     var y = 0

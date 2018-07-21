@@ -87,7 +87,7 @@ object GreedySolver extends Solver {
     var flipped = false
 
     toPaint.toList.sortBy(_._1).foreach {
-      case (y, points) =>
+      case (_, points) =>
         val nextToPaint = points.toList.sortBy(currentCoord.manhattanDistanceTo)
         nextToPaint.foreach { coord =>
           if (flipped && currentModel.isGrounded) {
@@ -99,9 +99,9 @@ object GreedySolver extends Solver {
 
           val coordToMove = coord.copy(y = coord.y + 1)
           commands ++= pf.findPath(currentCoord, coordToMove)
-          if (flipped || currentModel.supported(coord))
+          if (flipped || currentModel.supported(coord)) {
             commands += Fill(NCD(0, -1, 0))
-          else {
+          } else {
             commands += Flip
             commands += Fill(NCD(0, -1, 0))
             flipped = true
