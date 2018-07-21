@@ -37,7 +37,7 @@ object Main extends App {
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
     println(s"Parsed ${model.voxels.size} in ${parseTime}ms")
     val (solution, solvedTime) = time(solver.solve(model))
-    println(s"Solved with ${solution.size} iterations in ${solvedTime}ms")
+    println(s"Solved with ${solution.size} commands in ${solvedTime}ms")
     val (validModel, validationTime) = time(validate(model, solution))
     if (validModel) {
       println(s"Validated soution in ${validationTime}ms")

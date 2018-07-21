@@ -5,44 +5,34 @@ import scala.collection.mutable
 import icfpc2018._
 
 class AStarPathFinder(model: Matrix) {
-  private[this] def validMoves(from: Coord): List[Command] = {
-    val valids = mutable.ListBuffer[Command]()
-    val dirs = List(X, Y, Z)
-    val validDir = mutable.Map(
-      X -> mutable.Map(-1 -> true, 1 -> true),
-      Y -> mutable.Map(-1 -> true, 1 -> true),
-      Z -> mutable.Map(-1 -> true, 1 -> true))
-
-    (-15 to 15).foreach { i =>
-      if (i != 0) {
-        dirs.foreach { dir =>
-          val lld = LLD(dir, i)
-          if (validDir(dir)(math.signum(i)) && from.rangeToIterator(lld).forall(x => model.validateCoord(x) && model.get(x) == Void)) {
-            val nextCoord = from + lld
-            valids += SMove(lld)
-            if (math.abs(i) <= 5) {
-              dirs.foreach { otherDir =>
-                if (otherDir != dir) {
-                  (-5 to 5).foreach { j =>
-                    if (j != 0) {
-                      val sld = SLD(otherDir, j)
-                      if (nextCoord.rangeToIterator(sld).forall(x => model.validateCoord(x) && model.get(x) == Void)) {
-                        valids += LMove(SLD(dir, i), sld)
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } else {
-            validDir(dir)(math.signum(i)) = false
-          }
-        }
-      }
+  private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
+    if (math.abs(len) > 5 || !model.validAndNotFilled(from + LLD(dir, len))) {
+      Nil
+    } else {
+      SMove(LLD(dir, len)) :: validShortMovesAux(from, dir, len + dl, dl)
     }
 
-    valids.toList
+  private[this] def validMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] = {
+    if (math.abs(len) > 15 || !model.validAndNotFilled(from + LLD(dir, len))) {
+      Nil
+    } else {
+      val lld = LLD(dir, len)
+      val next = from + lld
+      val smoves: List[Command] = SMove(lld) :: validMovesAux(from, dir, len + dl, dl)
+      smoves ++ (if (math.abs(len) <= 5) {
+        for {
+          sld2 <- (for {
+            dir2 <- Dir.all.filter(_ != dir)
+          } yield (validShortMovesAux(next, dir2, 1, 1) ++ validShortMovesAux(next, dir2, -1, -1))).flatten.map(_.asInstanceOf[SMove])
+        } yield LMove(SLD(lld.a, lld.len), SLD(sld2.lld.a, sld2.lld.len))
+      } else {
+        Nil
+      })
+    }
   }
+
+  private[this] def validMoves(from: Coord): List[Command] =
+    Dir.all.flatMap { dir => validMovesAux(from, dir, 1, 1) ++ validMovesAux(from, dir, -1, -1) }
 
   def findPath(from: Coord, to: Coord): List[Command] = {
     val stepCost = model.dimension * model.dimension * model.dimension

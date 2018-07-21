@@ -176,6 +176,10 @@ sealed trait Dir {
   def encoded: Byte
 }
 
+object Dir {
+  lazy val all: List[Dir] = List(X, Y, Z)
+}
+
 case object X extends Dir {
   final val encoded = 1.b
 }

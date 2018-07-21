@@ -20,6 +20,9 @@ case class Matrix(
       coord.y >= 0 && coord.y < dimension &&
       coord.z >= 0 && coord.z < dimension
 
+  def validAndNotFilled(coord: Coord): Boolean =
+    validateCoord(coord) && !voxels.contains(coord)
+
   def canFillCoord(coord: Coord): Boolean =
     coord.x >= 1 && coord.x < (dimension - 1) &&
       coord.y >= 0 && coord.y < dimension &&
