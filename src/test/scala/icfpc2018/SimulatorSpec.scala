@@ -10,7 +10,7 @@ class SimulatorSpec extends Specification {
 
   "A Simulator" should {
 
-    "be" in {
+    "simulate a Trace solver" in {
       val model = Matrix.fromMdl(new File("models/lightning/LA001_tgt.mdl"))
       val cmds = TracerSolver.solve(model)
 
@@ -18,7 +18,7 @@ class SimulatorSpec extends Specification {
       st.energy === 2043360468L
     }
 
-    "be" in {
+    "simulate a Flood Fill solver" in {
       val model = Matrix.fromMdl(new File("models/lightning/LA001_tgt.mdl"))
       val cmds = FloodFillSolver().solve(model)
 
