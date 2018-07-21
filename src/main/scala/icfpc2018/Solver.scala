@@ -95,8 +95,10 @@ object GreedySolver extends Solver {
             flipped = false
           }
 
+          val pf = new AStarPathFinder(currentModel)
+
           val coordToMove = coord.copy(y = coord.y + 1)
-          commands ++= currentModel.path(currentCoord, coordToMove)
+          commands ++= pf.findPath(currentCoord, coordToMove)
           if (flipped || currentModel.supported(coord))
             commands += Fill(NCD(0, -1, 0))
           else {
@@ -113,7 +115,9 @@ object GreedySolver extends Solver {
     if (flipped)
       commands += Flip
 
-    commands ++= currentModel.path(currentCoord, Coord(0, 0, 0))
+    val pf = new AStarPathFinder(currentModel)
+
+    commands ++= pf.findPath(currentCoord, Coord(0, 0, 0))
     commands += Halt
 
     commands.toList
