@@ -6,6 +6,7 @@ import java.nio.file.{ Files, Paths }
 import scala.collection.JavaConverters._
 
 import icfpc2018.solver._
+import scala.util.{ Failure, Success, Try }
 
 object Main extends App {
 
@@ -13,8 +14,8 @@ object Main extends App {
     .filter(_.toString.endsWith(".mdl"))
     .sortBy(_.toString)
   val solver: Solver = GreedySolver
-  //def validate(model: Matrix, solution: List[Command]) = Try(Simulator.runAndValidate(model, solution)).isSuccess
-  def validate(model: Matrix, solution: List[Command]) = true
+  def validate(model: Matrix, solution: List[Command]) = Try(Simulator.runAndValidate(model, solution))
+  //def validate(model: Matrix, solution: List[Command]) = true
 
   def time[T](f: => T): (T, Long) = {
     val startTime = System.currentTimeMillis()
@@ -39,12 +40,13 @@ object Main extends App {
     val (solution, solvedTime) = time(solver.solve(model))
     println(s"Solved with ${solution.size} commands in ${solvedTime}ms")
     val (validModel, validationTime) = time(validate(model, solution))
-    if (validModel) {
-      println(s"Validated soution in ${validationTime}ms")
-      val (outputFilename, exportedTime) = time(export(solution, modelPath.getFileName.toString))
-      println(s"Exported to $outputFilename in ${exportedTime}ms")
-    } else {
-      println(s"Failed validation in ${validationTime}ms")
+    validModel match {
+      case Success(_) =>
+        println(s"Validated solution in ${validationTime}ms")
+        val (outputFilename, exportedTime) = time(export(solution, modelPath.getFileName.toString))
+        println(s"Exported to $outputFilename in ${exportedTime}ms")
+      case Failure(ex) =>
+        println(s"Failed validation in ${validationTime}ms with ${ex.getClass.getName}")
     }
     println("-----------------------------------------------------------")
   }

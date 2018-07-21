@@ -13,7 +13,7 @@ object Simulator {
   case class ConflictingVolatileCoordsException(msg: String, volCoords: List[Coord], st: State)
     extends Exception(s"$msg\nVolatile coords: $volCoords\nState: $st")
 
-  implicit val botOrdering = Ordering.by[Bot, Int](_.bid)
+  implicit val botOrdering: Ordering[Bot] = Ordering.by[Bot, Int](_.bid)
 
   def runAndValidate(model: Matrix, trace: List[Command]): State = {
     runAndValidate(initialState(model, trace), model)
@@ -52,7 +52,9 @@ object Simulator {
     }
 
     if (allVolCoords.length != allVolCoords.distinct.length) {
-      throw ConflictingVolatileCoordsException("Conflicting volatile coordinates", allVolCoords, newSt)
+      throw ConflictingVolatileCoordsException(
+        "Conflicting volatile coordinates",
+        allVolCoords.diff(allVolCoords.distinct).distinct, newSt)
     }
     if (newSt.harmonics == Low && !newSt.matrix.isGrounded) {
       throw SimulatorException("Matrix is not grounded", newSt)
@@ -91,8 +93,9 @@ object Simulator {
 
     case LMove(sld1, sld2) =>
       val (st1, vol1) = nextCmd(st, model, bot, SMove(LLD(sld1.a, sld1.len)))
-      val (st2, vol2) = nextCmd(st1, model, bot, SMove(LLD(sld2.a, sld2.len)))
-      (st2.copy(energy = st2.energy + 4), vol1 ::: vol2)
+      val newBot = st1.bots.find(_.bid == bot.bid).get
+      val (st2, vol2) = nextCmd(st1, model, newBot, SMove(LLD(sld2.a, sld2.len)))
+      (st2.copy(energy = st2.energy + 4), (vol1 ::: vol2).distinct)
 
     case Fission(nd, m) =>
       val cPrime = bot.pos + nd
