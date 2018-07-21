@@ -12,7 +12,7 @@ object SolverDSL {
 
   implicit def commandConversion(cmd: Command): SolverCommand = RawCommand(cmd)
 
-  /*def toCommands(commands: List[SolverCommand]): List[Command] = {
+  def toCommands(commands: List[SolverCommand]): List[Command] = {
     val genCommands = ListBuffer[Command]()
     var requireHarmonics: Boolean = false
     commands.foreach {
@@ -22,15 +22,13 @@ object SolverDSL {
       case RequireHarmonics if !requireHarmonics =>
         requireHarmonics = true
         genCommands += Flip
-      case ReleaseHarmonics =>
+      case ReleaseHarmonics if requireHarmonics =>
         requireHarmonics = false
-        if (!requireHarmonics) genCommands += Flip
+        genCommands += Flip
       case _ => // Do nothing
     }
     genCommands.toList
-  }*/
-
-  def toCommands(commands: List[SolverCommand]): List[Command] = toFlatCommands(List(commands))
+  }
 
   def toFlatCommands(commands: List[List[SolverCommand]]): List[Command] = {
     val genCommands = ListBuffer[Command]()
@@ -59,7 +57,7 @@ object SolverDSL {
         genCommands ++= List.fill(nextCommands.size - 1)(Wait)
       }
       harmonicsLock = nextHarmonicsLock
-      remainingCommands = remainingCommands.map(_.tail)
+      remainingCommands = remainingCommands.map(_.drop(1))
     }
     genCommands.toList
   }
