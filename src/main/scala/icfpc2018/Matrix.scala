@@ -11,7 +11,10 @@ import icfpc2018.Matrix.CoordSet
 case class Matrix(
   dimension: Int,
   groundedVoxels: CoordSet = CoordSet(),
-  ungroundedVoxels: CoordSet = CoordSet()) {
+  ungroundedVoxels: CoordSet = CoordSet(),
+  emptyX: Map[Int, Boolean] = Map[Int, Boolean]().withDefaultValue(true),
+  emptyY: Map[Int, Boolean] = Map[Int, Boolean]().withDefaultValue(true),
+  emptyZ: Map[Int, Boolean] = Map[Int, Boolean]().withDefaultValue(true)) {
 
   lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
 
@@ -59,12 +62,21 @@ case class Matrix(
       if (isGrounded) (groundedVoxels + coord, ungroundedVoxels)
       else updatedGrounded(coord)
     } else (groundedVoxels, ungroundedVoxels + coord)
-    copy(groundedVoxels = newGrounded, ungroundedVoxels = newUngrounded)
+    copy(
+      groundedVoxels = newGrounded,
+      ungroundedVoxels = newUngrounded,
+      emptyX = emptyX.updated(coord.x, false),
+      emptyY = emptyY.updated(coord.y, false),
+      emptyZ = emptyZ.updated(coord.z, false))
   }
 
   def unsafeFill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
-    copy(groundedVoxels = groundedVoxels + coord)
+    copy(
+      groundedVoxels = groundedVoxels + coord,
+      emptyX = emptyX.updated(coord.x, false),
+      emptyY = emptyY.updated(coord.y, false),
+      emptyZ = emptyZ.updated(coord.z, false))
   }
 }
 

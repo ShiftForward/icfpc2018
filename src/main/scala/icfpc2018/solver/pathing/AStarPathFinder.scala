@@ -34,7 +34,57 @@ class AStarPathFinder(model: Matrix) {
   private[this] def validMoves(from: Coord): List[Command] =
     Dir.all.flatMap { dir => validMovesAux(from, dir, 1, 1) ++ validMovesAux(from, dir, -1, -1) }
 
+  private[this] def yFindPathAux(from: Coord, to: Coord, cache: mutable.Map[Coord, List[Command]]): List[Command] =
+    cache.getOrElseUpdate(from, {
+      if (from == to)
+        Nil
+      else if (from.z == to.z) {
+        val len = to.x - from.x
+        val lld = if (math.abs(len) > 15)
+          LLD(X, math.signum(len) * 15)
+        else
+          LLD(X, len)
+        SMove(lld) :: yFindPathAux(from + lld, to, cache)
+      } else if (from.x == to.x) {
+        val len = to.z - from.z
+        val lld = if (math.abs(len) > 15)
+          LLD(Z, math.signum(len) * 15)
+        else
+          LLD(Z, len)
+        SMove(lld) :: yFindPathAux(from + lld, to, cache)
+      } else {
+        val diffX = to.x - from.x
+        val diffZ = to.z - from.z
+        val dx = math.signum(diffX)
+        val dz = math.signum(diffZ)
+        val maxX = if (dx > 0) math.min(5, diffX) else math.max(-5, diffX)
+        val maxZ = if (dz > 0) math.min(5, diffZ) else math.max(-5, diffZ)
+
+        var best: List[Command] = Nil
+        var command: Command = LMove(SLD(X, 0), SLD(X, 0))
+
+        (dx to maxX by dx).foreach { x =>
+          val sld1 = SLD(X, x)
+          (dz to maxZ by dz).foreach { z =>
+            val sld2 = SLD(Z, z)
+            val next = yFindPathAux(from + sld1 + sld2, to, cache)
+            if (best.isEmpty || next.length < best.length) {
+              best = next
+              command = LMove(sld1, sld2)
+            }
+          }
+        }
+
+        command :: best
+      }
+    })
+
+  def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to, mutable.Map()).reverse
+
   def findPath(from: Coord, to: Coord): List[Command] = {
+    if (from.y == to.y && model.emptyY(from.y))
+      return yFindPath(from, to)
+
     val stepCost = model.dimension * model.dimension * model.dimension
 
     val visited = mutable.Map[Coord, Long]()
