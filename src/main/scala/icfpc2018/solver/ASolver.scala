@@ -10,15 +10,15 @@ class ASolver(model: Matrix, nseeds: Int) {
 
   import ASolver._
 
-  lazy val botSplits: Map[Int, List[Action]] = {
+  lazy val botSplits: Map[Int, List[Coord]] = {
     val voxels = mutable.Set(model.voxels.toList: _*)
 
-    val dx = 2
-    val dz = 2
+    val dx = 5
+    val dz = 4
 
     val sx = voxels.toList.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).toList
     val sz = voxels.toList.sortBy(_.z).grouped((voxels.size + dz - 1) / dz).toList
-    val target = mutable.Map[Int, List[Action]]()
+    val target = mutable.Map[Int, List[Coord]]()
 
     var bid = 1
     (0 until dx).foreach { x =>
@@ -26,7 +26,7 @@ class ASolver(model: Matrix, nseeds: Int) {
         val coords = voxels.filter(c => c.x <= sx(x).last.x && c.z <= sz(z).last.z)
         voxels --= coords
         // FIXME sort this better
-        target(bid) = coords.toList.sortBy(_.y).map(Paint)
+        target(bid) = coords.toList
         bid += 1
       }
     }
@@ -34,8 +34,8 @@ class ASolver(model: Matrix, nseeds: Int) {
     target.toMap
   }
 
-  def getActions(bid: Int): mutable.Queue[Action] = {
-    mutable.Queue[Action](botSplits.getOrElse(bid, Nil): _*)
+  def getPaintCoords(bid: Int): List[Coord] = {
+    botSplits.getOrElse(bid, Nil)
   }
 
   val volatileCoords = mutable.Set[Coord]()
@@ -56,7 +56,7 @@ class ASolver(model: Matrix, nseeds: Int) {
 
   def solve(): List[Command] = {
     commands.clear()
-    val botState = mutable.ListBuffer[BotState](BotState(Bot(1, Coord(0, 0, 0), SortedSet((2 to nseeds): _*)), Coord(0, 0, 0), mutable.Queue(DoDivide), false))
+    val botState = mutable.ListBuffer[BotState](BotState(Bot(1, Coord(0, 0, 0), SortedSet((2 to nseeds): _*)), Coord(0, 0, 0), mutable.Queue(DoDivide), false, mutable.Set.empty[Coord]))
     var state: GlobalState = Divide
     var currentModel = Matrix(model.dimension)
     var flipped = false
@@ -70,6 +70,8 @@ class ASolver(model: Matrix, nseeds: Int) {
       val doNegativeFlip = (flipped && currentModel.isGrounded && !botState.exists(_.requiresHarmonics))
 
       val pf = new AStarPathFinder(currentModel, botState.map(_.bot.pos).toSet)
+
+      val prevBotPos = botState.map(_.bot.pos)
 
       botState.toList.foreach { s =>
         val b = s.bot
@@ -88,14 +90,16 @@ class ASolver(model: Matrix, nseeds: Int) {
                 val nd = if (b.pos.x < model.dimension - 1) NCD(1, 0, 0) else NCD(0, 0, 1)
                 if (addCommand(s.bot.pos, Fission(nd, b.seeds.size - 1)))
                   s.actions.dequeue()
-                val nextBot = BotState(Bot(b.seeds.head, b.pos + nd, b.seeds.tail), b.pos + nd, mutable.Queue[Action](), false)
+                val nextBot = BotState(Bot(b.seeds.head, b.pos + nd, b.seeds.tail), b.pos + nd, mutable.Queue[Action](), false, mutable.Set.empty[Coord])
                 if (nextBot.bot.seeds.nonEmpty)
                   nextBot.actions += DoDivide
                 botState += nextBot
                 s.bot = b.copy(seeds = SortedSet.empty[Int])
               }
 
-            case Paint(coord) =>
+            case DoPaint =>
+              val coordOpt = s.nextToPaint(currentModel)
+              val coord = coordOpt.get
               val coordToMove = coord.copy(y = coord.y + 1)
 
               if (b.pos == coordToMove) {
@@ -104,9 +108,11 @@ class ASolver(model: Matrix, nseeds: Int) {
                   if (addCommand(b.pos, Flip))
                     flipped = true
                 } else if (addCommand(s.bot.pos, Fill(NCD(0, -1, 0)))) {
-                  s.actions.dequeue()
                   currentModel = currentModel.fill(coord)
                   s.requiresHarmonics = false
+                  s.toPaint -= coord
+                  if (s.toPaint.isEmpty)
+                    s.actions.dequeue()
                 }
               } else {
                 val path = pf.findPath(b.pos, coordToMove)
@@ -149,7 +155,7 @@ class ASolver(model: Matrix, nseeds: Int) {
               if (s.bot.bid == botState.size) {
                 // FIXME hardcoded for x
                 val nd = NCD(-1, 0, 0)
-                if (botState(s.bot.bid - 2).bot.pos == s.bot.pos + nd) {
+                if (prevBotPos(s.bot.bid - 2) == s.bot.pos + nd) {
                   if (addCommand(s.bot.pos, FusionS(nd))) {
                     botState.remove(botState.size - 1)
                   }
@@ -157,7 +163,7 @@ class ASolver(model: Matrix, nseeds: Int) {
                   addCommand(s.bot.pos, Wait)
               } else if (s.bot.bid == botState.size - 1) {
                 val nd = NCD(1, 0, 0)
-                if (botState(s.bot.bid).bot.pos == s.bot.pos + nd) {
+                if (prevBotPos(s.bot.bid) == s.bot.pos + nd) {
                   addCommand(s.bot.pos, FusionP(nd))
                   if (s.bot.bid == 1)
                     s.actions.dequeue()
@@ -175,7 +181,8 @@ class ASolver(model: Matrix, nseeds: Int) {
         state = state.next
         if (state == DoWork) {
           botState.foreach { s =>
-            s.actions ++= getActions(s.bot.bid)
+            s.actions.enqueue(DoPaint)
+            s.toPaint ++= getPaintCoords(s.bot.bid)
           }
         } else if (state == Join) {
           botState.foreach { s =>
@@ -199,7 +206,19 @@ class ASolver(model: Matrix, nseeds: Int) {
  * Only works for assembly problems (for now).
  */
 object ASolver extends Solver {
-  case class BotState(var bot: Bot, initialPos: Coord, actions: mutable.Queue[Action], var requiresHarmonics: Boolean)
+  case class BotState(var bot: Bot, initialPos: Coord, actions: mutable.Queue[Action], var requiresHarmonics: Boolean, val toPaint: mutable.Set[Coord]) {
+    def nextToPaint(model: Matrix): Option[Coord] = {
+      if (toPaint.nonEmpty) {
+        val minY = toPaint.minBy(_.y).y
+        val atY = toPaint.filter(_.y == minY)
+        val grounded = atY.filter(model.supported)
+        if (grounded.nonEmpty)
+          Some(zigZagOnX(bot.pos, grounded.toList))
+        else
+          Some(zigZagOnX(bot.pos, atY.toList))
+      } else None
+    }
+  }
 
   sealed trait GlobalState {
     def next: GlobalState
@@ -227,12 +246,19 @@ object ASolver extends Solver {
 
   sealed trait Action
   case object DoDivide extends Action
-  case class Paint(coord: Coord) extends Action
+  case object DoPaint extends Action
   case class Delete(coord: Coord) extends Action
   case class GoTo(coord: Coord) extends Action
   case object DoJoin extends Action
 
   def solve(model: Matrix): List[Command] = {
-    new ASolver(model, 4).solve()
+    new ASolver(model, 20).solve()
+  }
+
+  def zigZagOnX(current: Coord, pointsToPaint: List[Coord]): Coord = {
+    val (_, points) = pointsToPaint.groupBy(_.x).minBy(_._1)
+    val minPt = points.minBy(_.z)
+    val maxPt = points.maxBy(_.z)
+    if (math.abs(minPt.z - current.z) <= math.abs(maxPt.z - current.z)) minPt else maxPt
   }
 }
