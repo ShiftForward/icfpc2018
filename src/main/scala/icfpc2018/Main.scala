@@ -13,7 +13,7 @@ object Main extends App {
   val models = Files.list(Paths.get("models", "lightning")).iterator().asScala.toList
     .filter(_.toString.endsWith(".mdl"))
     .sortBy(_.toString)
-  val solver: Solver = SplitSolver(GreedySolver)
+  val solver: Solver = GreedySolver
   def validate(model: Matrix, solution: List[Command]) = Try(Simulator.runAndValidate(model, solution))
   //def validate(model: Matrix, solution: List[Command]) = true
 

@@ -81,7 +81,11 @@ object Simulator {
       (st.copy(bots = st.bots - bot + newBot), thisVolCoords)
     }
 
-    def fillRegionAux(matrix: Matrix, from: Coord, to: Coord): (Matrix, Long, List[Coord]) = {
+    def fillRegionAux(
+      matrix: Matrix,
+      from: Coord,
+      to: Coord,
+      energyCalc: (Matrix, Coord) => (Matrix, Long)): (Matrix, Long, List[Coord]) = {
       val xxs =
         if (from.x < to.x) from.x to to.x
         else to.x to from.x
@@ -100,10 +104,8 @@ object Simulator {
 
       val (m, e) = coords.foldLeft((matrix, 0l)) {
         case ((m, e), c) =>
-          val energy =
-            if (m.get(c) == Full) 6
-            else 12
-          (m.fill(c), e + energy)
+          val (newM, ePlus) = energyCalc(m, c)
+          (newM, e + ePlus)
       }
       (m, e, coords.toList)
     }
@@ -211,7 +213,7 @@ object Simulator {
           endState = endState.copy(energy = endState.energy - 24, bots = endState.bots - primBot - secBot + fusedBot)
           endVolCoords = List(primBot.pos, secBot.pos) ::: endVolCoords
 
-        case _: GFill =>
+        case _: GFill => //FIXME: lots of repeated code...
           // put it back
           nextPair +=: botCmdPairs
 
@@ -220,6 +222,7 @@ object Simulator {
           val groupings = (for {
             (b1, g1 @ GFill(nd1, fd1)) <- gFills
             (b2, g2 @ GFill(nd2, fd2)) <- gFills
+            // they must point to each other
             if ((b1.pos + nd1) + fd1) == (b2.pos + nd2) && (b2.pos + nd2) + fd2 == (b1.pos + nd1)
           } yield Set((b1, g1), (b2, g2))).distinct.map(_.toList).toList
 
@@ -230,14 +233,50 @@ object Simulator {
           groupings.flatten.foreach(t => botCmdPairs -= t)
 
           // fill a region
-          groupings.head match {
+          (groupings.head: @unchecked) match {
             // any diagonal line works
             case (b1, GFill(nd1, _)) :: (b2, GFill(nd2, _)) :: _ =>
               val start = b1.pos + nd1
               val end = b2.pos + nd2
-              val (m, energy, regionVolCoords) = fillRegionAux(endState.matrix, start, end)
+              val (m, energy, regionVolCoords) = fillRegionAux(endState.matrix, start, end, { (matrix, coord) =>
+                val energy = if (matrix.get(coord) == Full) 6 else 12
+                (matrix.fill(coord), energy)
+              })
               endState = endState.copy(matrix = m, energy = endState.energy + energy)
-              endVolCoords = regionVolCoords ::: gFills.map(_._1.pos).toList ::: endVolCoords
+              endVolCoords = regionVolCoords ::: groupings.flatMap(_.map(_._1.pos)) ::: endVolCoords
+          }
+
+        case _: GVoid =>
+          // put it back
+          nextPair +=: botCmdPairs
+
+          val gVoids = botCmdPairs.filter { _._2.isInstanceOf[GVoid] }
+          if (gVoids.size % 2 != 0) throw CommandException(s"GVoid commands cannot be paired1", nextCmd, endState, nextBot)
+          val groupings = (for {
+            (b1, g1 @ GVoid(nd1, fd1)) <- gVoids
+            (b2, g2 @ GVoid(nd2, fd2)) <- gVoids
+            // they must point to each other
+            if ((b1.pos + nd1) + fd1) == (b2.pos + nd2) && (b2.pos + nd2) + fd2 == (b1.pos + nd1)
+          } yield Set((b1, g1), (b2, g2))).distinct.map(_.toList).toList
+
+          if (groupings.isEmpty || !Set(1, 2, 4).contains(groupings.size))
+            throw CommandException(s"GFill commands cannot be paired", nextCmd, endState, nextBot)
+
+          // remove processed commands from the list so they are not picked again
+          groupings.flatten.foreach(t => botCmdPairs -= t)
+
+          // fill a region
+          (groupings.head: @unchecked) match {
+            // any diagonal line works
+            case (b1, GVoid(nd1, _)) :: (b2, GVoid(nd2, _)) :: _ =>
+              val start = b1.pos + nd1
+              val end = b2.pos + nd2
+              val (m, energy, regionVolCoords) = fillRegionAux(endState.matrix, start, end, { (matrix, coord) =>
+                val energy = if (matrix.get(coord) == Full) -12 else 3
+                (matrix.fill(coord), energy)
+              })
+              endState = endState.copy(matrix = m, energy = endState.energy + energy)
+              endVolCoords = regionVolCoords ::: groupings.flatMap(_.map(_._1.pos)) ::: endVolCoords
           }
 
       }
