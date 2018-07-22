@@ -6,6 +6,8 @@ import icfpc2018._
 import icfpc2018.solver.pathing.AStarPathFinder
 
 class ASolver(model: Matrix, nseeds: Int) {
+  require(nseeds % 2 == 0)
+
   import ASolver._
 
   lazy val botSplits: Map[Int, List[Action]] = {
@@ -79,14 +81,19 @@ class ASolver(model: Matrix, nseeds: Int) {
 
           action match {
             case DoDivide =>
-              val nd = if (b.pos.x < model.dimension - 1) NCD(1, 0, 0) else NCD(0, 0, 1)
-              if (addCommand(s.bot.pos, Fission(nd, b.seeds.size - 1)))
+              if (s.bot.seeds.isEmpty) {
+                addCommand(s.bot.pos, Wait)
                 s.actions.dequeue()
-              val nextBot = BotState(Bot(b.seeds.head, b.pos + nd, b.seeds.tail), b.pos + nd, mutable.Queue[Action](), false)
-              if (nextBot.bot.seeds.nonEmpty)
-                nextBot.actions += DoDivide
-              botState += nextBot
-              s.bot = b.copy(seeds = SortedSet.empty[Int])
+              } else {
+                val nd = if (b.pos.x < model.dimension - 1) NCD(1, 0, 0) else NCD(0, 0, 1)
+                if (addCommand(s.bot.pos, Fission(nd, b.seeds.size - 1)))
+                  s.actions.dequeue()
+                val nextBot = BotState(Bot(b.seeds.head, b.pos + nd, b.seeds.tail), b.pos + nd, mutable.Queue[Action](), false)
+                if (nextBot.bot.seeds.nonEmpty)
+                  nextBot.actions += DoDivide
+                botState += nextBot
+                s.bot = b.copy(seeds = SortedSet.empty[Int])
+              }
 
             case Paint(coord) =>
               val coordToMove = coord.copy(y = coord.y + 1)
@@ -169,7 +176,8 @@ class ASolver(model: Matrix, nseeds: Int) {
         } else if (state == Join) {
           botState.foreach { s =>
             s.actions.enqueue(GoTo(s.initialPos))
-            s.actions.enqueue(DoJoin)
+            if (botState.size > 1)
+              s.actions.enqueue(DoJoin)
           }
         }
       }
