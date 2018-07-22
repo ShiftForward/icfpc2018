@@ -81,7 +81,7 @@ object Simulator {
       (st.copy(bots = st.bots - bot + newBot), thisVolCoords)
     }
 
-    def fillRegionAux(matrix: Matrix, from: Coord, to: Coord): (Matrix, Long) = {
+    def fillRegionAux(matrix: Matrix, from: Coord, to: Coord): (Matrix, Long, List[Coord]) = {
       val xxs =
         if (from.x < to.x) from.x to to.x
         else to.x to from.x
@@ -96,15 +96,16 @@ object Simulator {
         x <- xxs
         y <- yys
         z <- zzs
-      } yield (x, y, z)
+      } yield Coord(x, y, z)
 
-      coords.foldLeft((matrix, 0l)) {
-        case ((m, e), (x, y, z)) =>
+      val (m, e) = coords.foldLeft((matrix, 0l)) {
+        case ((m, e), c) =>
           val energy =
-            if (m.get(Coord(x, y, z)) == Full) 6
+            if (m.get(c) == Full) 6
             else 12
-          (m.fill(Coord(x, y, z)), e + energy)
+          (m.fill(c), e + energy)
       }
+      (m, e, coords.toList)
     }
 
     val botCmdPairs = mutable.ListBuffer(currentBotSet.zip(currentCmdSet).toArray: _*)
@@ -234,8 +235,9 @@ object Simulator {
             case (b1, GFill(nd1, _)) :: (b2, GFill(nd2, _)) :: _ =>
               val start = b1.pos + nd1
               val end = b2.pos + nd2
-              val (m, energy) = fillRegionAux(endState.matrix, start, end)
+              val (m, energy, regionVolCoords) = fillRegionAux(endState.matrix, start, end)
               endState = endState.copy(matrix = m, energy = endState.energy + energy)
+              endVolCoords = regionVolCoords ::: gFills.map(_._1.pos).toList ::: endVolCoords
           }
 
       }
