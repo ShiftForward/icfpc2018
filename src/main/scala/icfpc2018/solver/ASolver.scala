@@ -12,20 +12,20 @@ class ASolver(model: Matrix, nseeds: Int) {
 
   lazy val botSplits: Map[Int, List[Coord]] = {
     val voxels = mutable.Set(model.voxels.toList: _*)
+    val vvoxels = voxels.toVector
 
     val dx = 5
     val dz = 2
 
-    val sx = voxels.toList.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).toList
-    val sz = voxels.toList.sortBy(_.z).grouped((voxels.size + dz - 1) / dz).toList
+    val sx = vvoxels.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).map(_.maxBy(_.x).x).toVector
+    val sz = vvoxels.sortBy(_.z).grouped((voxels.size + dz - 1) / dz).map(_.maxBy(_.z).z).toVector
     val target = mutable.Map[Int, List[Coord]]()
 
     var bid = 1
     (0 until dx).foreach { x =>
       (0 until dz).foreach { z =>
-        val coords = voxels.filter(c => c.x <= sx(x).last.x && c.z <= sz(z).last.z)
+        val coords = voxels.filter(c => c.x <= sx(x) && c.z <= sz(z))
         voxels --= coords
-        // FIXME sort this better
         target(bid) = coords.toList
         bid += 1
       }
@@ -120,9 +120,9 @@ class ASolver(model: Matrix, nseeds: Int) {
                   }
                 } else {
                   val path = pf.findPath(b.pos, coordToMove)
-                  if (path.isEmpty)
+                  if (path.isEmpty) {
                     addCommand(s.bot.pos, Wait)
-                  else if (addCommand(s.bot.pos, path.head)) {
+                  } else if (addCommand(s.bot.pos, path.head)) {
                     path.head match {
                       case SMove(lld) =>
                         s.bot = b.copy(pos = b.pos + lld)
