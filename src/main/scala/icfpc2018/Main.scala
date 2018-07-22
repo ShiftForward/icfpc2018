@@ -13,7 +13,7 @@ object Main extends App {
   val models = Files.list(Paths.get("models", "lightning")).iterator().asScala.toList
     .filter(_.toString.endsWith(".mdl"))
     .sortBy(_.toString)
-  val solver: Solver = GreedySolver
+  val solver: Solver = SplitSolver(GreedySolver)
   def validate(model: Matrix, solution: List[Command]) = Try(Simulator.runAndValidate(model, solution))
   //def validate(model: Matrix, solution: List[Command]) = true
 
@@ -33,7 +33,7 @@ object Main extends App {
     outputFilename
   }
 
-  models.foreach { modelPath =>
+  models.take(1).foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
     println(s"Parsed ${model.voxels.size} in ${parseTime}ms")
@@ -47,6 +47,8 @@ object Main extends App {
         println(s"Exported to $outputFilename in ${exportedTime}ms")
       case Failure(ex) =>
         println(s"Failed validation in ${validationTime}ms with ${ex.getClass.getName}")
+        export(solution, modelPath.getFileName.toString + "_failed")
+        ex.printStackTrace()
     }
     println("-----------------------------------------------------------")
   }
