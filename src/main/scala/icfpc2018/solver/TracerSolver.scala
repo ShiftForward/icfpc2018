@@ -22,7 +22,7 @@ object TracerSolver extends PartialSolver {
     val len = (maxX + 1 - (minX - 1)) * (maxY + 1) * (maxZ + 1 - (minZ - 1))
 
     commands ++=
-      new AStarPathFinder(srcModel).findPath(from, Coord(minX - 1, 0, minZ - 1)).map(RawCommand)
+      new AStarPathFinder(srcModel, Set()).findPath(from, Coord(minX - 1, 0, minZ - 1)).map(RawCommand)
 
     var x = minX - 1
     var y = 0
