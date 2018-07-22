@@ -23,9 +23,9 @@ case class Matrix(
     Coord(x / voxels.size, y / voxels.size, z / voxels.size)
   }
 
-  lazy val emptyX: Map[Int, Boolean] = countX.mapValues(_ > 0)
-  lazy val emptyY: Map[Int, Boolean] = countX.mapValues(_ > 0)
-  lazy val emptyZ: Map[Int, Boolean] = countX.mapValues(_ > 0)
+  lazy val emptyX: Map[Int, Boolean] = countX.mapValues(_ > 0).withDefaultValue(true)
+  lazy val emptyY: Map[Int, Boolean] = countY.mapValues(_ > 0).withDefaultValue(true)
+  lazy val emptyZ: Map[Int, Boolean] = countZ.mapValues(_ > 0).withDefaultValue(true)
 
   lazy val sumOfFilled: Map[Coord, Int] = {
     val map = mutable.Map.empty[Coord, Int]
