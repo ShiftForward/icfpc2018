@@ -227,9 +227,9 @@ object Matrix {
     Matrix(
       dimension,
       groundedVoxels = coordSet,
-      countX = coordSet.groupBy(_.x).map { case (k, v) => k -> v.size },
-      countY = coordSet.groupBy(_.y).map { case (k, v) => k -> v.size },
-      countZ = coordSet.groupBy(_.z).map { case (k, v) => k -> v.size })
+      countX = coordSet.groupBy(_.x).map { case (k, v) => k -> v.size }.withDefaultValue(0),
+      countY = coordSet.groupBy(_.y).map { case (k, v) => k -> v.size }.withDefaultValue(0),
+      countZ = coordSet.groupBy(_.z).map { case (k, v) => k -> v.size }.withDefaultValue(0))
   }
 
   def fromMdl(mdlFile: File): Matrix = {
