@@ -75,24 +75,6 @@ object TracerSolver extends PartialSolver {
       y = ny
       z = nz
     }
-
-    while (z != 0) {
-      val dist = math.max(0 - z, -15)
-      commands += SMove(LLD(Z, dist))
-      z += dist
-    }
-
-    while (x != 0) {
-      val dist = math.max(0 - x, -15)
-      commands += SMove(LLD(X, dist))
-      x += dist
-    }
-
-    while (y != 0) {
-      val dist = math.max(0 - y, -15)
-      commands += SMove(LLD(Y, dist))
-      y += dist
-    }
-    (commands.toList, dstModel, Coord(0, 0, 0))
+    (commands.toList, dstModel, Coord(x, y, z))
   }
 }
