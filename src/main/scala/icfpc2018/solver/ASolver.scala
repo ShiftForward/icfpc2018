@@ -13,8 +13,8 @@ class ASolver(model: Matrix, nseeds: Int) {
   lazy val botSplits: Map[Int, List[Coord]] = {
     val voxels = mutable.Set(model.voxels.toList: _*)
 
-    val dx = 5
-    val dz = 4
+    val dx = 2
+    val dz = 2
 
     val sx = voxels.toList.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).toList
     val sz = voxels.toList.sortBy(_.z).grouped((voxels.size + dz - 1) / dz).toList
@@ -99,32 +99,37 @@ class ASolver(model: Matrix, nseeds: Int) {
 
             case DoPaint =>
               val coordOpt = s.nextToPaint(currentModel)
-              val coord = coordOpt.get
-              val coordToMove = coord.copy(y = coord.y + 1)
-
-              if (b.pos == coordToMove) {
-                if (!currentModel.supported(coord) && !flipped) {
-                  s.requiresHarmonics = true
-                  if (addCommand(b.pos, Flip))
-                    flipped = true
-                } else if (addCommand(s.bot.pos, Fill(NCD(0, -1, 0)))) {
-                  currentModel = currentModel.fill(coord)
-                  s.requiresHarmonics = false
-                  s.toPaint -= coord
-                  if (s.toPaint.isEmpty)
-                    s.actions.dequeue()
-                }
+              if (coordOpt.isEmpty) {
+                s.actions.dequeue()
+                addCommand(s.bot.pos, Wait)
               } else {
-                val path = pf.findPath(b.pos, coordToMove)
-                if (path.isEmpty)
-                  addCommand(s.bot.pos, Wait)
-                else if (addCommand(s.bot.pos, path.head)) {
-                  path.head match {
-                    case SMove(lld) =>
-                      s.bot = b.copy(pos = b.pos + lld)
-                    case LMove(sld1, sld2) =>
-                      s.bot = b.copy(pos = b.pos + sld1 + sld2)
-                    case _ => //
+                val coord = coordOpt.get
+                val coordToMove = coord.copy(y = coord.y + 1)
+
+                if (b.pos == coordToMove) {
+                  if (!currentModel.supported(coord) && !flipped) {
+                    s.requiresHarmonics = true
+                    if (addCommand(b.pos, Flip))
+                      flipped = true
+                  } else if (addCommand(s.bot.pos, Fill(NCD(0, -1, 0)))) {
+                    currentModel = currentModel.fill(coord)
+                    s.requiresHarmonics = false
+                    s.toPaint -= coord
+                    if (s.toPaint.isEmpty)
+                      s.actions.dequeue()
+                  }
+                } else {
+                  val path = pf.findPath(b.pos, coordToMove)
+                  if (path.isEmpty)
+                    addCommand(s.bot.pos, Wait)
+                  else if (addCommand(s.bot.pos, path.head)) {
+                    path.head match {
+                      case SMove(lld) =>
+                        s.bot = b.copy(pos = b.pos + lld)
+                      case LMove(sld1, sld2) =>
+                        s.bot = b.copy(pos = b.pos + sld1 + sld2)
+                      case _ => //
+                    }
                   }
                 }
               }
@@ -252,7 +257,7 @@ object ASolver extends Solver {
   case object DoJoin extends Action
 
   def solve(model: Matrix): List[Command] = {
-    new ASolver(model, 20).solve()
+    new ASolver(model, 4).solve()
   }
 
   def zigZagOnX(current: Coord, pointsToPaint: List[Coord]): Coord = {
