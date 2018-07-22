@@ -4,22 +4,23 @@ import scala.collection.mutable
 
 import icfpc2018._
 
-class AStarPathFinder(model: Matrix) {
-  private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
+class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
+  /*private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
     if (math.abs(len) > 5 || !model.validAndNotFilled(from + LLD(dir, len))) {
       Nil
     } else {
       SMove(LLD(dir, len)) :: validShortMovesAux(from, dir, len + dl, dl)
-    }
+    }*/
 
   private[this] def validMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] = {
-    if (math.abs(len) > 15 || !model.validAndNotFilled(from + LLD(dir, len))) {
+    if (math.abs(len) > 15 || !model.validAndNotFilled(from + LLD(dir, len)) || botPositions.contains(from + LLD(dir, len))) {
       Nil
     } else {
       val lld = LLD(dir, len)
       val next = from + lld
       val smoves: List[Command] = SMove(lld) :: validMovesAux(from, dir, len + dl, dl)
-      smoves ++ (if (math.abs(len) <= 5) {
+      smoves
+      /*smoves ++ (if (math.abs(len) <= 5) {
         for {
           sld2 <- (for {
             dir2 <- Dir.all.filter(_ != dir)
@@ -27,7 +28,7 @@ class AStarPathFinder(model: Matrix) {
         } yield LMove(SLD(lld.a, lld.len), SLD(sld2.lld.a, sld2.lld.len))
       } else {
         Nil
-      })
+      })*/
     }
   }
 
@@ -82,7 +83,7 @@ class AStarPathFinder(model: Matrix) {
   def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to, mutable.Map()).reverse
 
   def findPath(from: Coord, to: Coord): List[Command] = {
-    if (from.y == to.y && model.emptyY(from.y))
+    if (from.y == to.y && model.countY(from.y) == 0)
       return yFindPath(from, to)
 
     val stepCost = model.dimension * model.dimension * model.dimension
@@ -127,6 +128,8 @@ class AStarPathFinder(model: Matrix) {
     var f = to
     val path = mutable.ListBuffer[Command]()
     while (f != from) {
+      if (prev.get(f).isEmpty)
+        return Nil
       path += prev(f)._2
       f = prev(f)._1
     }

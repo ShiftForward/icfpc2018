@@ -84,18 +84,22 @@ object Coord {
 
 sealed trait Command {
   def encoded: Vector[Byte]
+  def volatileCoords(coord: Coord): Set[Coord]
 }
 
 case object Halt extends Command {
   final val encoded = Vector(11111111.b)
+  def volatileCoords(coord: Coord): Set[Coord] = Set(coord)
 }
 
 case object Wait extends Command {
   final val encoded = Vector(11111110.b)
+  def volatileCoords(coord: Coord): Set[Coord] = Set(coord)
 }
 
 case object Flip extends Command {
   final val encoded = Vector(11111101.b)
+  def volatileCoords(coord: Coord): Set[Coord] = Set(coord)
 }
 
 case class SMove(lld: LLD) extends Command {
@@ -103,6 +107,7 @@ case class SMove(lld: LLD) extends Command {
   lazy val encoded = Vector(
     (header + (lld.a.encoded.toInt << 4)).toByte,
     lld.i.toByte)
+  def volatileCoords(coord: Coord): Set[Coord] = coord.rangeTo(lld).toSet
 }
 
 case class LMove(sld1: SLD, sld2: SLD) extends Command {
@@ -110,41 +115,66 @@ case class LMove(sld1: SLD, sld2: SLD) extends Command {
   lazy val encoded = Vector(
     (header + (sld1.a.encoded.toInt << 4) + (sld2.a.encoded.toInt << 6)).toByte,
     ((sld2.i << 4) + sld1.i).toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    coord.rangeTo(sld1).toSet ++ (coord + sld1).rangeTo(sld2).toSet
 }
 
 case class FusionP(nd: NCD) extends Command {
   final val header = 111.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    Set(coord)
 }
 
 case class FusionS(nd: NCD) extends Command {
   final val header = 110.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    Set(coord)
 }
 
 case class Fission(nd: NCD, m: Int) extends Command {
   final val header = 101.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, m.toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    Set(coord, coord + nd)
 }
 
 case class Fill(nd: NCD) extends Command {
   final val header = 11.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    Set(coord, coord + nd)
 }
 
 case class Void(nd: NCD) extends Command {
   final val header = 10.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    Set(coord, coord + nd)
 }
 
 case class GFill(nd: NCD, fd: FCD) extends Command {
   final val header = 1.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (fd.dx + 30).toByte, (fd.dy + 30).toByte, (fd.dz + 30).toByte)
+  def volatileCoords(coord: Coord): Set[Coord] =
+    (coord + nd).rangeTo(LLD(X, fd.dx)).flatMap { x =>
+      x.rangeTo(LLD(Z, fd.dz)).flatMap { z =>
+        z.rangeTo(LLD(Y, fd.dy))
+      }
+    }.toSet + coord
 }
 
 case class GVoid(nd: NCD, fd: FCD) extends Command {
   final val header = 0.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte, (fd.dx + 30).toByte, (fd.dy + 30).toByte, (fd.dz + 30).toByte)
+
+  def volatileCoords(coord: Coord): Set[Coord] =
+    (coord + nd).rangeTo(LLD(X, fd.dx)).flatMap { x =>
+      x.rangeTo(LLD(Z, fd.dz)).flatMap { z =>
+        z.rangeTo(LLD(Y, fd.dy))
+      }
+    }.toSet + coord
 }
 
 trait CoordinateDifference {

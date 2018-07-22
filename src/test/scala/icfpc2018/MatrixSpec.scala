@@ -25,6 +25,19 @@ class MatrixSpec extends Specification {
       groundedMatrix.voxels.size === 3
       groundedMatrix.groundedVoxels.size === 3
       groundedMatrix.ungroundedVoxels.size === 0
+
+      val cutMatrixBottom = groundedMatrix.void(Coord(1, 0, 1))
+      println(cutMatrixBottom.voxels)
+      cutMatrixBottom.isGrounded === false
+      cutMatrixBottom.voxels.size === 2
+      cutMatrixBottom.groundedVoxels.size === 0
+      cutMatrixBottom.ungroundedVoxels.size === 2
+
+      val cutMatrixMiddle = groundedMatrix.void(Coord(1, 1, 1))
+      cutMatrixMiddle.isGrounded === false
+      cutMatrixMiddle.voxels.size === 2
+      cutMatrixMiddle.groundedVoxels.size === 1
+      cutMatrixMiddle.ungroundedVoxels.size === 1
     }
 
     "have an optimized CoordSet" in {
@@ -43,6 +56,30 @@ class MatrixSpec extends Specification {
 
       (coordSetToKeep ++ coordSetToRemove).iterator.toSet === randomCoords
 
+    }
+
+    "correctly check if a cube is totally full or void" in {
+      val matrix2 = Matrix(2)
+      matrix2.isVoidOrFull(Coord(0, 0, 0), Coord(1, 1, 1)) must beSome(Void)
+
+      // a 4x4 matrix
+      val matrix4 = Matrix(4)
+        .fill(Coord(1, 0, 1))
+        // with a 2x2 cube
+        .fill(Coord(1, 1, 1))
+        .fill(Coord(2, 1, 1))
+        .fill(Coord(1, 2, 1))
+        .fill(Coord(2, 2, 1))
+        .fill(Coord(1, 1, 2))
+        .fill(Coord(2, 1, 2))
+        .fill(Coord(1, 2, 2))
+        .fill(Coord(2, 2, 2))
+
+      matrix4.isVoidOrFull(Coord(0, 0, 0), Coord(3, 3, 3)) must beNone
+      matrix4.isVoidOrFull(Coord(1, 1, 1), Coord(2, 2, 2)) must beSome(Full)
+      matrix4.isVoidOrFull(Coord(1, 0, 1), Coord(1, 0, 1)) must beSome(Full)
+      matrix4.isVoidOrFull(Coord(0, 0, 1), Coord(0, 0, 1)) must beSome(Void)
+      matrix4.isVoidOrFull(Coord(0, 0, 0), Coord(3, 0, 0)) must beSome(Void)
     }
   }
 }
