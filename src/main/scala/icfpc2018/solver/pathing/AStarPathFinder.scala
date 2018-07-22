@@ -108,7 +108,7 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
       val len = -nlen
       if (curr == to)
         keepGoing = false
-      if (visited(curr.x)(curr.y)(curr.z) >= len) {
+      if (keepGoing && visited(curr.x)(curr.y)(curr.z) >= len) {
         validMoves(curr).foreach {
           case SMove(lld) =>
             val nextCoord = curr + lld
