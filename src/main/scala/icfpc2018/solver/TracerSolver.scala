@@ -3,33 +3,36 @@ package icfpc2018.solver
 import scala.collection.mutable
 
 import icfpc2018._
-import icfpc2018.solver.SolverDSL.{ RequireHarmonics, SolverCommand }
+import icfpc2018.solver.SolverDSL.{ ReleaseHarmonics, RequireHarmonics, SolverCommand }
 
-object TracerSolver extends SimpleSolver {
-  def baseSolve(model: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
+object TracerSolver extends PartialSolver {
+  def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
+    val dimension = dstModel.dimension
     var dx = 1
     var dz = 1
     var x = from.x
     var y = from.y
     var z = from.z
     val commands = mutable.ListBuffer[SolverCommand]()
-    val len = model.dimension * model.dimension * model.dimension
-    commands += RequireHarmonics
+    val maxY = (srcModel.voxels ++ dstModel.voxels).maxBy(_.y).y
+    val len = dimension * dimension * (maxY + 1)
+    var currModel = srcModel
+    var highHarmonics = false
 
-    (0 until len - 1).foreach { _ =>
+    (0 until len).foreach { _ =>
       val currentCoord = Coord(x, y, z)
       var nz = z
       var ny = y
       var nx = x
       nz += dz
-      if (nz >= model.dimension || nz < 0) {
-        nz = if (nz == model.dimension) model.dimension - 1 else 0
+      if (nz >= dimension || nz < 0) {
+        nz = if (nz == dimension) dimension - 1 else 0
         nx += dx
         dz = if (dz == 1) -1 else 1
       }
 
-      if (nx >= model.dimension || nx < 0) {
-        nx = if (nx == model.dimension) model.dimension - 1 else 0
+      if (nx >= dimension || nx < 0) {
+        nx = if (nx == dimension) dimension - 1 else 0
         ny += 1
         dx = if (dx == 1) -1 else 1
       }
@@ -42,33 +45,36 @@ object TracerSolver extends SimpleSolver {
         (Z, nz - z)
       }
 
+      if (srcModel.get(Coord(nx, ny, nz)) == Full) {
+        currModel = currModel.void(Coord(nx, ny, nz))
+        if (currModel.isGrounded && highHarmonics) {
+          highHarmonics = false
+          commands += Void(NCD(nx - x, ny - y, nz - z))
+          commands += ReleaseHarmonics
+        } else if (!currModel.isGrounded && !highHarmonics) {
+          highHarmonics = true
+          commands += RequireHarmonics
+          commands += Void(NCD(nx - x, ny - y, nz - z))
+        } else commands += Void(NCD(nx - x, ny - y, nz - z))
+      }
       commands += SMove(LLD(dir, diff))
-      if (model.get(currentCoord) == Full) {
-        commands += Fill(NCD(x - nx, y - ny, z - nz))
+      if (dstModel.get(currentCoord) == Full) {
+        currModel = currModel.fill(currentCoord)
+        if (currModel.isGrounded && highHarmonics) {
+          highHarmonics = false
+          commands += Fill(NCD(x - nx, y - ny, z - nz))
+          commands += ReleaseHarmonics
+        } else if (!currModel.isGrounded && !highHarmonics) {
+          highHarmonics = true
+          commands += RequireHarmonics
+          commands += Fill(NCD(x - nx, y - ny, z - nz))
+        } else commands += Fill(NCD(x - nx, y - ny, z - nz))
       }
 
       x = nx
       y = ny
       z = nz
     }
-
-    while (z != 0) {
-      val dist = math.max(0 - z, -15)
-      commands += SMove(LLD(Z, dist))
-      z += dist
-    }
-
-    while (x != 0) {
-      val dist = math.max(0 - x, -15)
-      commands += SMove(LLD(X, dist))
-      x += dist
-    }
-
-    while (y != 0) {
-      val dist = math.max(0 - y, -15)
-      commands += SMove(LLD(Y, dist))
-      y += dist
-    }
-    (commands.toList, model, Coord(0, 0, 0))
+    (commands.toList, dstModel, Coord(x, y, z))
   }
 }
