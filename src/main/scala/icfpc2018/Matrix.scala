@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.Files
 
 import scala.annotation.tailrec
-import scala.collection.{ BitSet, mutable }
+import scala.collection.{ BitSet, immutable, mutable }
 
 import icfpc2018.Matrix.CoordSet
 
@@ -29,7 +29,7 @@ case class Matrix(
     def value(x: Int, y: Int, z: Int): Int = {
       val c = Coord(x, y, z)
       if (!validateCoord(c)) 0
-      else map.get(c).get
+      else map(c)
     }
 
     (0 until dimension).map { x =>
@@ -65,7 +65,7 @@ case class Matrix(
     def value(x: Int, y: Int, z: Int): Int = {
       val c = Coord(x, y, z)
       if (!validateCoord(c)) 0
-      else sumOfFilled.get(c).get
+      else sumOfFilled(c)
     }
 
     val xMax = math.max(c1.x, c2.x)
@@ -91,39 +91,43 @@ case class Matrix(
     else None
   }
 
+  @inline
+  private[this] def _contains(coord: Coord) =
+    groundedVoxels.contains(coord) || ungroundedVoxels.contains(coord)
+
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
       coord.y >= 0 && coord.y < dimension &&
       coord.z >= 0 && coord.z < dimension
 
   def validAndNotFilled(coord: Coord): Boolean =
-    validateCoord(coord) && !voxels.contains(coord)
+    validateCoord(coord) && !_contains(coord)
 
   def canFillCoord(coord: Coord): Boolean =
     coord.x >= 1 && coord.x < (dimension - 1) &&
       coord.y >= 0 && coord.y < (dimension - 1) &&
       coord.z >= 1 && coord.z < (dimension - 1) &&
-      !voxels.contains(coord)
+      !_contains(coord)
 
   def canVoidCoord(coord: Coord): Boolean =
     coord.x >= 1 && coord.x < (dimension - 1) &&
       coord.y >= 0 && coord.y < (dimension - 1) &&
       coord.z >= 1 && coord.z < (dimension - 1) &&
-      voxels.contains(coord)
+      _contains(coord)
 
   def get(coord: Coord): Voxel = {
     require(validateCoord(coord), s"Invalid coordinate: $coord")
-    if (voxels.contains(coord)) Full else Void
+    if (_contains(coord)) Full else Void
   }
 
   def supported(coord: Coord): Boolean =
-    coord.y == 0 || coord.neighbors.filter(validateCoord).exists(groundedVoxels)
+    coord.y == 0 || coord.neighbors.exists(c => validateCoord(c) && groundedVoxels(c))
   lazy val isGrounded: Boolean = ungroundedVoxels.isEmpty
 
   private[this] def updatedGrounded(grounded: CoordSet, unknown: CoordSet, ungrounded: CoordSet): (CoordSet, CoordSet) = {
     @tailrec
     def aux(groundedAccum: CoordSet, unknownAccum: CoordSet): (CoordSet, CoordSet) = {
-      val canBeGrounded = unknownAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
+      val canBeGrounded = unknownAccum.filter(_.neighbors.exists(c => validateCoord(c) && groundedAccum(c)))
       if (canBeGrounded.isEmpty) (groundedAccum, unknownAccum)
       else {
         aux(groundedAccum ++ canBeGrounded, unknownAccum -- canBeGrounded)
@@ -166,7 +170,7 @@ case class Matrix(
   def void(coord: Coord): Matrix = {
     require(canVoidCoord(coord), s"Can't void coordinate: $coord")
     val (newGrounded, newUngrounded) = if (supported(coord)) {
-      val degree = coord.neighbors.count(c => c.y < 0 || voxels.contains(c))
+      val degree = coord.neighbors.count(c => c.y < 0 || _contains(c))
       if (degree == 1) (groundedVoxels - coord, ungroundedVoxels)
       else updateGroundedVoid(coord)
     } else (groundedVoxels, ungroundedVoxels - coord)
@@ -205,35 +209,53 @@ object Matrix {
     override def iterator: Iterator[Coord] = innerBuffer.iterator.map(fromBinary)
   }
 
+  object CoordSet {
+    def newBuilder: mutable.Builder[Coord, CoordSet] = new mutable.Builder[Coord, CoordSet] {
+      val innerBuilder: mutable.Builder[Int, immutable.BitSet] = BitSet.newBuilder
+      override def +=(elem: Coord): this.type = {
+        innerBuilder += elem.toBinary
+        this
+      }
+      override def clear(): Unit = innerBuilder.clear()
+      override def result(): CoordSet = CoordSet(innerBuilder.result())
+    }
+  }
+
+  def unsafeApply(dimension: Int, coordSet: CoordSet): Matrix = {
+    val dummy = Matrix(dimension)
+    require(coordSet.forall(dummy.canFillCoord))
+    Matrix(
+      dimension,
+      groundedVoxels = coordSet,
+      countX = coordSet.groupBy(_.x).map { case (k, v) => k -> v.size },
+      countY = coordSet.groupBy(_.y).map { case (k, v) => k -> v.size },
+      countZ = coordSet.groupBy(_.z).map { case (k, v) => k -> v.size })
+  }
+
   def fromMdl(mdlFile: File): Matrix = {
     val bytes: Array[Byte] = Files.readAllBytes(mdlFile.toPath)
-    val matrix = Matrix(0xFF & bytes(0).asInstanceOf[Int])
-    println(s"Loading $mdlFile model file with dimension: ${matrix.dimension}")
+    val dimension = 0xFF & bytes(0).asInstanceOf[Int]
+    println(s"Loading $mdlFile model file with dimension: $dimension")
     var z = 0
     var x = 0
     var y = 0
-    bytes.drop(1).foldLeft(matrix) {
-      case (m, b) =>
-        (0 until 8).foldLeft(m) {
-          case (m, i) =>
-            val nextM = if ((b & (1 << i)) != 0)
-              m.unsafeFill(Coord(x, y, z))
-            else
-              m
+    val builder = CoordSet.newBuilder
+    bytes.drop(1).foreach { b =>
+      (0 until 8).foreach { i =>
+        if ((b & (1 << i)) != 0) builder += Coord(x, y, z)
 
-            z += 1
-            if (z >= matrix.dimension) {
-              z = 0
-              y += 1
-            }
-
-            if (y >= matrix.dimension) {
-              y = 0
-              x += 1
-            }
-
-            nextM
+        z += 1
+        if (z >= dimension) {
+          z = 0
+          y += 1
         }
+
+        if (y >= dimension) {
+          y = 0
+          x += 1
+        }
+      }
     }
+    Matrix.unsafeApply(dimension, builder.result())
   }
 }
