@@ -121,13 +121,13 @@ case class Matrix(
   }
 
   def supported(coord: Coord): Boolean =
-    coord.y == 0 || coord.neighbors.filter(validateCoord).exists(groundedVoxels)
+    coord.y == 0 || coord.neighbors.exists(c => validateCoord(c) && groundedVoxels(c))
   lazy val isGrounded: Boolean = ungroundedVoxels.isEmpty
 
   private[this] def updatedGrounded(grounded: CoordSet, unknown: CoordSet, ungrounded: CoordSet): (CoordSet, CoordSet) = {
     @tailrec
     def aux(groundedAccum: CoordSet, unknownAccum: CoordSet): (CoordSet, CoordSet) = {
-      val canBeGrounded = unknownAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
+      val canBeGrounded = unknownAccum.filter(_.neighbors.exists(c => validateCoord(c) && groundedAccum(c)))
       if (canBeGrounded.isEmpty) (groundedAccum, unknownAccum)
       else {
         aux(groundedAccum ++ canBeGrounded, unknownAccum -- canBeGrounded)
