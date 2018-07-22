@@ -38,7 +38,7 @@ object LightningMain extends Main {
   models.foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
-    println(s"Parsed ${model.voxels.size} in ${parseTime}ms")
+    println(s"Parsed ${model.voxels.size} voxels in ${parseTime}ms")
     val (solution, solvedTime) = time(solver.solve(model))
     println(s"Solved with ${solution.size} commands in ${solvedTime}ms")
     val (validModel, validationTime) = time(validate(model, solution))
@@ -75,7 +75,7 @@ object FullMain extends Main {
   assemblyModels.foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
-    println(s"Parsed ${model.voxels.size} in ${parseTime}ms")
+    println(s"Parsed ${model.voxels.size} voxels in ${parseTime}ms")
     val (solution, solvedTime) = time(assemblySolver.solve(model))
     println(s"Solved with ${solution.size} commands in ${solvedTime}ms")
     val (validModel, validationTime) = time(validate(model, solution))
@@ -94,7 +94,7 @@ object FullMain extends Main {
   disassemblyModels.foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
-    println(s"Parsed ${model.voxels.size} in ${parseTime}ms")
+    println(s"Parsed ${model.voxels.size} voxels in ${parseTime}ms")
     val (solution, solvedTime) = time(disassemblySolver.solve(model, Matrix(model.dimension)))
     println(s"Solved with ${solution.size} commands in ${solvedTime}ms")
     // TODO validate this
@@ -108,10 +108,10 @@ object FullMain extends Main {
     case (srcModelPath, dstModelPath) =>
       println("Parsing model " + srcModelPath.toString)
       val (srcModel, srcParseTime) = time(Matrix.fromMdl(srcModelPath.toFile))
-      println(s"Parsed ${srcModel.voxels.size} in ${srcParseTime}ms")
+      println(s"Parsed ${srcModel.voxels.size} voxels in ${srcParseTime}ms")
       println("Parsing model " + dstModelPath.toString)
       val (dstModel, dstParseTime) = time(Matrix.fromMdl(dstModelPath.toFile))
-      println(s"Parsed ${dstModel.voxels.size} in ${dstParseTime}ms")
+      println(s"Parsed ${dstModel.voxels.size} voxels in ${dstParseTime}ms")
       val (solution, solvedTime) = time(reassemblySolver.solve(srcModel, dstModel))
       // TODO validate this
       println(s"Solved with ${solution.size} commands in ${solvedTime}ms")

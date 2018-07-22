@@ -65,7 +65,7 @@ case class Matrix(
     def value(x: Int, y: Int, z: Int): Int = {
       val c = Coord(x, y, z)
       if (!validateCoord(c)) 0
-      else sumOfFilled.get(c).get
+      else sumOfFilled(c)
     }
 
     val xMax = math.max(c1.x, c2.x)
