@@ -12,9 +12,9 @@ case class Matrix(
   dimension: Int,
   groundedVoxels: CoordSet = CoordSet(),
   ungroundedVoxels: CoordSet = CoordSet(),
-  emptyX: Map[Int, Boolean] = Map[Int, Boolean]().withDefaultValue(true),
-  emptyY: Map[Int, Boolean] = Map[Int, Boolean]().withDefaultValue(true),
-  emptyZ: Map[Int, Boolean] = Map[Int, Boolean]().withDefaultValue(true)) {
+  countX: Map[Int, Int] = Map[Int, Int]().withDefaultValue(0),
+  countY: Map[Int, Int] = Map[Int, Int]().withDefaultValue(0),
+  countZ: Map[Int, Int] = Map[Int, Int]().withDefaultValue(0)) {
   require(dimension <= 250, "Max matrix dimension is 250")
 
   lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
@@ -22,6 +22,10 @@ case class Matrix(
     val (x, y, z) = voxels.foldLeft((0, 0, 0)) { case ((sumX, sumY, sumZ), c) => (sumX + c.x, sumY + c.y, sumZ + c.z) }
     Coord(x / voxels.size, y / voxels.size, z / voxels.size)
   }
+
+  lazy val emptyX: Map[Int, Boolean] = countX.mapValues(_ > 0)
+  lazy val emptyY: Map[Int, Boolean] = countX.mapValues(_ > 0)
+  lazy val emptyZ: Map[Int, Boolean] = countX.mapValues(_ > 0)
 
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
@@ -37,6 +41,12 @@ case class Matrix(
       coord.z >= 1 && coord.z < (dimension - 1) &&
       !voxels.contains(coord)
 
+  def canVoidCoord(coord: Coord): Boolean =
+    coord.x >= 1 && coord.x < (dimension - 1) &&
+      coord.y >= 0 && coord.y < (dimension - 1) &&
+      coord.z >= 1 && coord.z < (dimension - 1) &&
+      voxels.contains(coord)
+
   def get(coord: Coord): Voxel = {
     require(validateCoord(coord), s"Invalid coordinate: $coord")
     if (voxels.contains(coord)) Full else Void
@@ -46,42 +56,68 @@ case class Matrix(
     coord.y == 0 || coord.neighbors.filter(validateCoord).exists(groundedVoxels)
   lazy val isGrounded: Boolean = ungroundedVoxels.isEmpty
 
-  private[this] def updatedGrounded(newCoord: Coord): (CoordSet, CoordSet) = {
-    val (groundedInit, ungroundedInit): (CoordSet, CoordSet) =
-      if (supported(newCoord)) (groundedVoxels + newCoord, ungroundedVoxels)
-      else (groundedVoxels, ungroundedVoxels + newCoord)
+  private[this] def updatedGrounded(grounded: CoordSet, unknown: CoordSet, ungrounded: CoordSet): (CoordSet, CoordSet) = {
     @tailrec
-    def aux(groundedAccum: CoordSet, ungroundedAccum: CoordSet): (CoordSet, CoordSet) = {
-      val canBeGrounded = ungroundedAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
-      if (canBeGrounded.isEmpty) (groundedAccum, ungroundedAccum)
+    def aux(groundedAccum: CoordSet, unknownAccum: CoordSet): (CoordSet, CoordSet) = {
+      val canBeGrounded = unknownAccum.filter(_.neighbors.filter(validateCoord).exists(groundedAccum))
+      if (canBeGrounded.isEmpty) (groundedAccum, unknownAccum)
       else {
-        aux(groundedAccum ++ canBeGrounded, ungroundedAccum -- canBeGrounded)
+        aux(groundedAccum ++ canBeGrounded, unknownAccum -- canBeGrounded)
       }
     }
-    aux(groundedInit, ungroundedInit)
+    if (unknown.isEmpty) (grounded, ungrounded)
+    else {
+      val (finalGrounded, updatedUngrounded) = aux(grounded, unknown)
+      (finalGrounded, ungrounded ++ updatedUngrounded)
+    }
+  }
+
+  private[this] def updatedGroundedFill(newCoord: Coord): (CoordSet, CoordSet) = {
+    if (supported(newCoord))
+      updatedGrounded(groundedVoxels + newCoord, ungroundedVoxels, CoordSet())
+    else updatedGrounded(groundedVoxels, ungroundedVoxels + newCoord, CoordSet())
+  }
+
+  private[this] def updateGroundedVoid(newCoord: Coord): (CoordSet, CoordSet) = {
+    if (supported(newCoord)) {
+      val (floored, lifted) = (groundedVoxels - newCoord).partition(_.y == 0)
+      updatedGrounded(floored, lifted, ungroundedVoxels)
+    } else updatedGrounded(groundedVoxels, CoordSet(), ungroundedVoxels - newCoord)
   }
 
   def fill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
     val (newGrounded, newUngrounded) = if (supported(coord)) {
       if (isGrounded) (groundedVoxels + coord, ungroundedVoxels)
-      else updatedGrounded(coord)
+      else updatedGroundedFill(coord)
     } else (groundedVoxels, ungroundedVoxels + coord)
     copy(
       groundedVoxels = newGrounded,
       ungroundedVoxels = newUngrounded,
-      emptyX = emptyX.updated(coord.x, false),
-      emptyY = emptyY.updated(coord.y, false),
-      emptyZ = emptyZ.updated(coord.z, false))
+      countX = countX.updated(coord.x, countX(coord.x) + 1),
+      countY = countY.updated(coord.y, countY(coord.y) + 1),
+      countZ = countZ.updated(coord.z, countZ(coord.z) + 1))
+  }
+
+  def void(coord: Coord): Matrix = {
+    require(canVoidCoord(coord), s"Can't void coordinate: $coord")
+    val (newGrounded, newUngrounded) = if (supported(coord)) {
+      val degree = coord.neighbors.count(c => c.y < 0 || voxels.contains(c))
+      if (degree == 1) (groundedVoxels - coord, ungroundedVoxels)
+      else updateGroundedVoid(coord)
+    } else (groundedVoxels, ungroundedVoxels - coord)
+    copy(
+      groundedVoxels = newGrounded,
+      ungroundedVoxels = newUngrounded) // FIXME: Update empty
   }
 
   def unsafeFill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
     copy(
       groundedVoxels = groundedVoxels + coord,
-      emptyX = emptyX.updated(coord.x, false),
-      emptyY = emptyY.updated(coord.y, false),
-      emptyZ = emptyZ.updated(coord.z, false))
+      countX = countX.updated(coord.x, math.max(0, countX(coord.x) - 1)),
+      countY = countY.updated(coord.y, math.max(0, countY(coord.y) - 1)),
+      countZ = countZ.updated(coord.z, math.max(0, countZ(coord.z) - 1)))
   }
 }
 
@@ -98,6 +134,10 @@ object Matrix {
     def --(that: CoordSet): CoordSet = CoordSet(this.innerBuffer &~ that.innerBuffer)
     override def filter(p: Coord => Boolean): CoordSet = CoordSet(
       innerBuffer.filter(x => p(fromBinary(x))))
+    override def partition(p: Coord => Boolean): (CoordSet, CoordSet) = {
+      val (t, f) = innerBuffer.partition(x => p(fromBinary(x)))
+      (CoordSet(t), CoordSet(f))
+    }
     override def iterator: Iterator[Coord] = innerBuffer.iterator.map(fromBinary)
   }
 
