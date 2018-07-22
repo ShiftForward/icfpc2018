@@ -119,14 +119,14 @@ case class FusionP(nd: NCD) extends Command {
   final val header = 111.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
   def volatileCoords(coord: Coord): Set[Coord] =
-    Set(coord, coord + nd)
+    Set(coord)
 }
 
 case class FusionS(nd: NCD) extends Command {
   final val header = 110.b
   lazy val encoded = Vector((header + (nd.encoded << 3)).toByte)
   def volatileCoords(coord: Coord): Set[Coord] =
-    Set(coord, coord + nd)
+    Set(coord)
 }
 
 case class Fission(nd: NCD, m: Int) extends Command {

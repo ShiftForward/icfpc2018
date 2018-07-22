@@ -43,11 +43,11 @@ object Main extends App {
     validModel match {
       case Success(st) =>
         println(s"Validated solution in ${validationTime}ms. Energy was ${st.energy}")
-        val (outputFilename, exportedTime) = time(export(solution, modelPath.getFileName.toString))
-        println(s"Exported to $outputFilename in ${exportedTime}ms")
       case Failure(ex) =>
         println(s"Failed validation in ${validationTime}ms with ${ex.getClass.getName}")
     }
+    val (outputFilename, exportedTime) = time(export(solution, modelPath.getFileName.toString))
+    println(s"Exported to $outputFilename in ${exportedTime}ms")
     println("-----------------------------------------------------------")
   }
 }

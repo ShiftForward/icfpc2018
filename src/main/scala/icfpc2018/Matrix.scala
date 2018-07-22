@@ -23,10 +23,6 @@ case class Matrix(
     Coord(x / voxels.size, y / voxels.size, z / voxels.size)
   }
 
-  lazy val emptyX: Map[Int, Boolean] = countX.mapValues(_ > 0)
-  lazy val emptyY: Map[Int, Boolean] = countX.mapValues(_ > 0)
-  lazy val emptyZ: Map[Int, Boolean] = countX.mapValues(_ > 0)
-
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
       coord.y >= 0 && coord.y < dimension &&
@@ -115,9 +111,9 @@ case class Matrix(
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
     copy(
       groundedVoxels = groundedVoxels + coord,
-      countX = countX.updated(coord.x, math.max(0, countX(coord.x) - 1)),
-      countY = countY.updated(coord.y, math.max(0, countY(coord.y) - 1)),
-      countZ = countZ.updated(coord.z, math.max(0, countZ(coord.z) - 1)))
+      countX = countX.updated(coord.x, countX(coord.x) + 1),
+      countY = countY.updated(coord.y, countY(coord.y) + 1),
+      countZ = countZ.updated(coord.z, countZ(coord.z) + 1))
   }
 }
 

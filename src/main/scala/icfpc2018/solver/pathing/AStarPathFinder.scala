@@ -19,7 +19,8 @@ class AStarPathFinder(model: Matrix) {
       val lld = LLD(dir, len)
       val next = from + lld
       val smoves: List[Command] = SMove(lld) :: validMovesAux(from, dir, len + dl, dl)
-      smoves ++ (if (math.abs(len) <= 5) {
+      smoves
+      /*smoves ++ (if (math.abs(len) <= 5) {
         for {
           sld2 <- (for {
             dir2 <- Dir.all.filter(_ != dir)
@@ -27,7 +28,7 @@ class AStarPathFinder(model: Matrix) {
         } yield LMove(SLD(lld.a, lld.len), SLD(sld2.lld.a, sld2.lld.len))
       } else {
         Nil
-      })
+      })*/
     }
   }
 
@@ -82,7 +83,7 @@ class AStarPathFinder(model: Matrix) {
   def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to, mutable.Map()).reverse
 
   def findPath(from: Coord, to: Coord): List[Command] = {
-    if (from.y == to.y && model.emptyY(from.y))
+    if (from.y == to.y && model.countY(from.y) == 0)
       return yFindPath(from, to)
 
     val stepCost = model.dimension * model.dimension * model.dimension
