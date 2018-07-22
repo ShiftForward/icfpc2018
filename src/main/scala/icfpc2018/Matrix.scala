@@ -29,7 +29,7 @@ case class Matrix(
     def value(x: Int, y: Int, z: Int): Int = {
       val c = Coord(x, y, z)
       if (!validateCoord(c)) 0
-      else map.get(c).get
+      else map(c)
     }
 
     (0 until dimension).map { x =>
@@ -91,29 +91,33 @@ case class Matrix(
     else None
   }
 
+  @inline
+  private[this] def _contains(coord: Coord) =
+    groundedVoxels.contains(coord) || ungroundedVoxels.contains(coord)
+
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&
       coord.y >= 0 && coord.y < dimension &&
       coord.z >= 0 && coord.z < dimension
 
   def validAndNotFilled(coord: Coord): Boolean =
-    validateCoord(coord) && !voxels.contains(coord)
+    validateCoord(coord) && !_contains(coord)
 
   def canFillCoord(coord: Coord): Boolean =
     coord.x >= 1 && coord.x < (dimension - 1) &&
       coord.y >= 0 && coord.y < (dimension - 1) &&
       coord.z >= 1 && coord.z < (dimension - 1) &&
-      !voxels.contains(coord)
+      !_contains(coord)
 
   def canVoidCoord(coord: Coord): Boolean =
     coord.x >= 1 && coord.x < (dimension - 1) &&
       coord.y >= 0 && coord.y < (dimension - 1) &&
       coord.z >= 1 && coord.z < (dimension - 1) &&
-      voxels.contains(coord)
+      _contains(coord)
 
   def get(coord: Coord): Voxel = {
     require(validateCoord(coord), s"Invalid coordinate: $coord")
-    if (voxels.contains(coord)) Full else Void
+    if (_contains(coord)) Full else Void
   }
 
   def supported(coord: Coord): Boolean =
@@ -166,7 +170,7 @@ case class Matrix(
   def void(coord: Coord): Matrix = {
     require(canVoidCoord(coord), s"Can't void coordinate: $coord")
     val (newGrounded, newUngrounded) = if (supported(coord)) {
-      val degree = coord.neighbors.count(c => c.y < 0 || voxels.contains(c))
+      val degree = coord.neighbors.count(c => c.y < 0 || _contains(c))
       if (degree == 1) (groundedVoxels - coord, ungroundedVoxels)
       else updateGroundedVoid(coord)
     } else (groundedVoxels, ungroundedVoxels - coord)
