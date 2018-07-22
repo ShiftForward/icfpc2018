@@ -26,14 +26,14 @@ object Main extends App {
 
   def export(commands: List[Command], filename: String): String = {
     val output = commands.flatMap(_.encoded).toArray
-    val outputFilename = "output/" + filename.take(5) + ".nbt"
+    val outputFilename = "output/" + filename + ".nbt"
     val bos = new BufferedOutputStream(new FileOutputStream(outputFilename))
     bos.write(output)
     bos.close()
     outputFilename
   }
 
-  models.take(1).foreach { modelPath =>
+  models.take(10).foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
     val (model, parseTime) = time(Matrix.fromMdl(modelPath.toFile))
     println(s"Parsed ${model.voxels.size} in ${parseTime}ms")
@@ -43,11 +43,11 @@ object Main extends App {
     validModel match {
       case Success(st) =>
         println(s"Validated solution in ${validationTime}ms. Energy was ${st.energy}")
-        val (outputFilename, exportedTime) = time(export(solution, modelPath.getFileName.toString))
+        val (outputFilename, exportedTime) = time(export(solution, modelPath.getFileName.toString.take(5)))
         println(s"Exported to $outputFilename in ${exportedTime}ms")
       case Failure(ex) =>
         println(s"Failed validation in ${validationTime}ms with ${ex.getClass.getName}")
-        export(solution, modelPath.getFileName.toString + "_failed")
+        export(solution, modelPath.getFileName.toString.take(5) + "_failed")
         ex.printStackTrace()
     }
     println("-----------------------------------------------------------")

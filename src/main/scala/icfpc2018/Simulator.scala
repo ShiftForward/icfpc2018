@@ -16,7 +16,6 @@ object Simulator {
   implicit val botOrdering: Ordering[Bot] = Ordering.by[Bot, Int](_.bid)
 
   def runAndValidate(model: Matrix, trace: List[Command]): State = {
-    println()
     runAndValidate(initialState(model, trace), model)
   }
 
@@ -48,11 +47,7 @@ object Simulator {
 
     val initialUpdSt = st.copy(energy = initEnergy, trace = st.trace.drop(botSet.size))
 
-    println("Old Bots:\n" + initialUpdSt.bots.map(b => (b.bid, b.pos)).mkString("\n"))
-    println("Commands:\n" + cmdSet.mkString("\n"))
     val (newSt, allVolCoords) = processCmds(initialUpdSt, model, botSet, cmdSet)
-    println("New Bots:\n" + newSt.bots.map(b => (b.bid, b.pos)).mkString("\n"))
-    println()
 
     if (allVolCoords.length != allVolCoords.distinct.length) {
       throw ConflictingVolatileCoordsException(
@@ -112,23 +107,7 @@ object Simulator {
         case smove @ SMove(lld) =>
           val (newState, newVolCoords) = sMoveAux(endState, smove, nextBot)
           endState = newState.copy(energy = endState.energy + 2 * math.abs(lld.len))
-          println(s"Adding vols (${nextBot.bid}) : " + newVolCoords)
           endVolCoords = endVolCoords ::: newVolCoords
-
-        //          val cPrime = bot.pos + lld
-        //      val thisVolCoords = bot.pos.rangeTo(lld)
-        //
-        //      if (!st.matrix.validateCoord(cPrime)) {
-        //        throw CommandException("c' is not valid", cmd, st, bot)
-        //      }
-        //      thisVolCoords.foreach { coord =>
-        //        if (st.matrix.get(coord) == Full) {
-        //          throw CommandException(s"$coord is full", cmd, st, bot)
-        //        }
-        //      }
-        //
-        //      val newBot = bot.copy(pos = cPrime)
-        //      (st.copy(energy = st.energy + 2 * math.abs(lld.len), bots = st.bots - bot + newBot), thisVolCoords)
 
         case LMove(sld1, sld2) =>
           val (st1, vol1) = sMoveAux(endState, SMove(LLD(sld1.a, sld1.len)), nextBot)
@@ -136,11 +115,6 @@ object Simulator {
           val (st2, vol2) = sMoveAux(st1, SMove(LLD(sld2.a, sld2.len)), newBot)
           endState = st2.copy(energy = st2.energy + 2 * (math.abs(sld1.len) + 2 + math.abs(sld2.len)))
           endVolCoords = (vol1 ::: vol2).distinct ::: endVolCoords
-
-        //          val (st1, vol1) = nextCmd(st, model, bot, SMove(LLD(sld1.a, sld1.len)))
-        //      val newBot = st1.bots.find(_.bid == bot.bid).get
-        //      val (st2, vol2) = nextCmd(st1, model, newBot, SMove(LLD(sld2.a, sld2.len)))
-        //      (st2.copy(energy = st2.energy + 4), (vol1 ::: vol2).distinct)
 
         case Fill(nd) =>
           val cPrime = nextBot.pos + nd
@@ -156,12 +130,10 @@ object Simulator {
 
           } else {
             endState = endState.copy(energy = endState.energy + 12, matrix = endState.matrix.fill(cPrime))
-            println(s"Adding vols (${nextBot.bid}) : " + List(nextBot.pos, cPrime))
             endVolCoords = List(nextBot.pos, cPrime) ::: endVolCoords
           }
 
         case Fission(nd, m) =>
-          println("In the fission")
           val cPrime = nextBot.pos + nd
 
           if (nextBot.seeds.isEmpty) {
@@ -179,16 +151,14 @@ object Simulator {
           val updatedBot = nextBot.copy(seeds = nextBot.seeds.drop(m))
           val clonedBotSeeds = nextBot.seeds.slice(0, m)
           val clonedBot = Bot(clonedBotSeeds.head, cPrime, clonedBotSeeds.drop(1))
-          println("Original bot: " + nextBot)
-          println("Cloned bot: " + clonedBot)
           endState = endState.copy(energy = endState.energy + 24, bots = endState.bots - nextBot + updatedBot + clonedBot)
-          println(endState.bots.map(b => (b.bid, b.pos)))
           endVolCoords = List(nextBot.pos, cPrime) ::: endVolCoords
 
         case FusionP(pnd) =>
           val cPrime = nextBot.pos + pnd
           val fusionPair = botCmdPairs.find {
             case (b, FusionS(snd)) => b.pos == cPrime && b.pos + snd == nextBot.pos
+            case _ => false
           }.getOrElse(throw CommandException(s"Can't find FusionP pair command", nextCmd, endState, nextBot))
           botCmdPairs -= fusionPair
 
@@ -203,6 +173,7 @@ object Simulator {
           val cPrime = nextBot.pos + snd
           val fusionPair = botCmdPairs.find {
             case (b, FusionP(pnd)) => b.pos == cPrime && b.pos + pnd == nextBot.pos
+            case _ => false
           }.getOrElse(throw CommandException(s"Can't find FusionS pair command", nextCmd, endState, nextBot))
           botCmdPairs -= fusionPair
 
@@ -217,89 +188,6 @@ object Simulator {
 
     (endState, endVolCoords)
   }
-
-  //  def nextCmd(st: State, model: Matrix, bot: Bot, cmd: Command): (State, List[Coord]) = cmd match {
-  //    case Halt =>
-  //      if (bot.pos != Coord(0, 0, 0) || st.bots.size != 1 || st.harmonics != Low) {
-  //        throw CommandException("Invalid Halt", Halt, st, bot)
-  //      }
-  //      (st.copy(bots = SortedSet.empty[Bot]), Nil)
-  //
-  //    case Wait =>
-  //      (st, List(bot.pos))
-  //
-  //    case Flip =>
-  //      (st.copy(harmonics = st.harmonics.flipped), List(bot.pos))
-  //
-  //    case SMove(lld) =>
-  //      val cPrime = bot.pos + lld
-  //      val thisVolCoords = bot.pos.rangeTo(lld)
-  //
-  //      if (!st.matrix.validateCoord(cPrime)) {
-  //        throw CommandException("c' is not valid", cmd, st, bot)
-  //      }
-  //      thisVolCoords.foreach { coord =>
-  //        if (st.matrix.get(coord) == Full) {
-  //          throw CommandException(s"$coord is full", cmd, st, bot)
-  //        }
-  //      }
-  //
-  //      val newBot = bot.copy(pos = cPrime)
-  //      (st.copy(energy = st.energy + 2 * math.abs(lld.len), bots = st.bots - bot + newBot), thisVolCoords)
-  //
-  //    case LMove(sld1, sld2) =>
-  //      val (st1, vol1) = nextCmd(st, model, bot, SMove(LLD(sld1.a, sld1.len)))
-  //      val newBot = st1.bots.find(_.bid == bot.bid).get
-  //      val (st2, vol2) = nextCmd(st1, model, newBot, SMove(LLD(sld2.a, sld2.len)))
-  //      (st2.copy(energy = st2.energy + 4), (vol1 ::: vol2).distinct)
-  //
-  //    case Fission(nd, m) =>
-  //      val cPrime = bot.pos + nd
-  //
-  //      if (bot.seeds.isEmpty) {
-  //        throw CommandException("Seeds is empty", cmd, st, bot)
-  //      }
-  //      if (!st.matrix.validateCoord(cPrime)) {
-  //        throw CommandException("c' is not valid", cmd, st, bot)
-  //      }
-  //      if (st.matrix.get(cPrime) == Full) {
-  //        throw CommandException(s"$cPrime is full", cmd, st, bot)
-  //      }
-  //      if (bot.seeds.size < m + 1) {
-  //        throw CommandException(s"Invalid m", cmd, st, bot)
-  //      }
-  //      val updatedBot = bot.copy(seeds = bot.seeds.drop(m + 1))
-  //      val clonedBot = Bot(bot.seeds.head, cPrime, bot.seeds.slice(1, m))
-  //      (st.copy(energy = st.energy + 24, bots = st.bots - bot + updatedBot + clonedBot), List(bot.pos, cPrime))
-  //
-  //    case Fill(nd) =>
-  //      val cPrime = bot.pos + nd
-  //
-  //      if (!st.matrix.validateCoord(cPrime)) {
-  //        throw CommandException("c' is not valid", cmd, st, bot)
-  //      }
-  //
-  //      if (st.matrix.get(cPrime) == Full) {
-  //        println(s"WARNING: trying to fill $cPrime that is already filled")
-  //        (st.copy(energy = st.energy + 6), List(bot.pos, cPrime))
-  //      } else {
-  //        (st.copy(energy = st.energy + 12, matrix = st.matrix.fill(cPrime)), List(bot.pos, cPrime))
-  //      }
-  //
-  //    case FusionP(nd) =>
-  //      val cPrime = bot.pos + nd
-  //      val secBot = st.bots.find(_.pos == cPrime).get
-  //      val fusedBot = bot.copy(seeds = bot.seeds + secBot.bid ++ secBot.seeds)
-  //      (st.copy(energy = st.energy - 24, bots = st.bots - bot - secBot + fusedBot), List(bot.pos, secBot.pos))
-  //
-  //    case FusionS(nd) =>
-  //      // this could be better, we are not catching certain errors
-  //      val cPrime = bot.pos + nd
-  //      if (!st.bots.exists(_.pos == cPrime)) {
-  //        throw CommandException(s"Invalid primary bot", cmd, st, bot)
-  //      }
-  //      (st, Nil)
-  //  }
 
   private[this] def initialState(model: Matrix, trace: List[Command]): State = {
     State(
