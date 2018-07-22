@@ -14,14 +14,10 @@ object TracerSolver extends PartialSolver {
     var y = from.y
     var z = from.z
     val commands = mutable.ListBuffer[SolverCommand]()
-    val maxY = math.max(srcModel.voxels.maxBy(_.y).y, dstModel.voxels.maxBy(_.y).y)
+    val maxY = (srcModel.voxels ++ dstModel.voxels).maxBy(_.y).y
     val len = dimension * dimension * (maxY + 1)
     var currModel = srcModel
     var highHarmonics = false
-
-    def updateHarmonics() =
-      if (currModel.isGrounded && highHarmonics) commands += ReleaseHarmonics
-      else if (!currModel.isGrounded && !highHarmonics) commands += ReleaseHarmonics
 
     (0 until len).foreach { _ =>
       val currentCoord = Coord(x, y, z)
@@ -51,14 +47,28 @@ object TracerSolver extends PartialSolver {
 
       if (srcModel.get(Coord(nx, ny, nz)) == Full) {
         currModel = currModel.void(Coord(nx, ny, nz))
-        updateHarmonics()
-        commands += Void(NCD(nx - x, ny - y, nz - z))
+        if (currModel.isGrounded && highHarmonics) {
+          highHarmonics = false
+          commands += Void(NCD(nx - x, ny - y, nz - z))
+          commands += ReleaseHarmonics
+        } else if (!currModel.isGrounded && !highHarmonics) {
+          highHarmonics = true
+          commands += RequireHarmonics
+          commands += Void(NCD(nx - x, ny - y, nz - z))
+        } else commands += Void(NCD(nx - x, ny - y, nz - z))
       }
       commands += SMove(LLD(dir, diff))
       if (dstModel.get(currentCoord) == Full) {
         currModel = currModel.fill(currentCoord)
-        updateHarmonics()
-        commands += Fill(NCD(x - nx, y - ny, z - nz))
+        if (currModel.isGrounded && highHarmonics) {
+          highHarmonics = false
+          commands += Fill(NCD(x - nx, y - ny, z - nz))
+          commands += ReleaseHarmonics
+        } else if (!currModel.isGrounded && !highHarmonics) {
+          highHarmonics = true
+          commands += RequireHarmonics
+          commands += Fill(NCD(x - nx, y - ny, z - nz))
+        } else commands += Fill(NCD(x - nx, y - ny, z - nz))
       }
 
       x = nx
