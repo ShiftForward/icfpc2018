@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.Files
 
 import scala.annotation.tailrec
-import scala.collection.{ BitSet, mutable }
+import scala.collection.{ BitSet, immutable, mutable }
 
 import icfpc2018.Matrix.CoordSet
 
@@ -209,35 +209,53 @@ object Matrix {
     override def iterator: Iterator[Coord] = innerBuffer.iterator.map(fromBinary)
   }
 
+  object CoordSet {
+    def newBuilder: mutable.Builder[Coord, CoordSet] = new mutable.Builder[Coord, CoordSet] {
+      val innerBuilder: mutable.Builder[Int, immutable.BitSet] = BitSet.newBuilder
+      override def +=(elem: Coord): this.type = {
+        innerBuilder += elem.toBinary
+        this
+      }
+      override def clear(): Unit = innerBuilder.clear()
+      override def result(): CoordSet = CoordSet(innerBuilder.result())
+    }
+  }
+
+  def unsafeApply(dimension: Int, coordSet: CoordSet): Matrix = {
+    val dummy = Matrix(dimension)
+    require(coordSet.forall(dummy.canFillCoord))
+    Matrix(
+      dimension,
+      groundedVoxels = coordSet,
+      countX = coordSet.groupBy(_.x).map { case (k, v) => k -> v.size },
+      countY = coordSet.groupBy(_.y).map { case (k, v) => k -> v.size },
+      countZ = coordSet.groupBy(_.z).map { case (k, v) => k -> v.size })
+  }
+
   def fromMdl(mdlFile: File): Matrix = {
     val bytes: Array[Byte] = Files.readAllBytes(mdlFile.toPath)
-    val matrix = Matrix(0xFF & bytes(0).asInstanceOf[Int])
-    println(s"Loading $mdlFile model file with dimension: ${matrix.dimension}")
+    val dimension = 0xFF & bytes(0).asInstanceOf[Int]
+    println(s"Loading $mdlFile model file with dimension: $dimension")
     var z = 0
     var x = 0
     var y = 0
-    bytes.drop(1).foldLeft(matrix) {
-      case (m, b) =>
-        (0 until 8).foldLeft(m) {
-          case (m, i) =>
-            val nextM = if ((b & (1 << i)) != 0)
-              m.unsafeFill(Coord(x, y, z))
-            else
-              m
+    val builder = CoordSet.newBuilder
+    bytes.drop(1).foreach { b =>
+      (0 until 8).foreach { i =>
+        if ((b & (1 << i)) != 0) builder += Coord(x, y, z)
 
-            z += 1
-            if (z >= matrix.dimension) {
-              z = 0
-              y += 1
-            }
-
-            if (y >= matrix.dimension) {
-              y = 0
-              x += 1
-            }
-
-            nextM
+        z += 1
+        if (z >= dimension) {
+          z = 0
+          y += 1
         }
+
+        if (y >= dimension) {
+          y = 0
+          x += 1
+        }
+      }
     }
+    Matrix.unsafeApply(dimension, builder.result())
   }
 }
