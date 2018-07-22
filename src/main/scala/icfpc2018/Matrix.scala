@@ -18,6 +18,10 @@ case class Matrix(
   require(dimension <= 250, "Max matrix dimension is 250")
 
   lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
+  lazy val centerOfMass: Coord = {
+    val (x, y, z) = voxels.foldLeft((0, 0, 0)) { case ((sumX, sumY, sumZ), c) => (sumX + c.x, sumY + c.y, sumZ + c.z) }
+    Coord(x / voxels.size, y / voxels.size, z / voxels.size)
+  }
 
   def validateCoord(coord: Coord): Boolean =
     coord.x >= 0 && coord.x < dimension &&

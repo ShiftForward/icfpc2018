@@ -9,16 +9,15 @@ import icfpc2018.solver.SolverDSL.{ RawCommand, SolverCommand }
 case class SplitSolver(innerSolver: SimpleSolver) extends Solver {
   def solve(model: Matrix): List[Command] = {
 
-    val flooredMiddle = (model.dimension.toFloat / 2).floor.toInt
-    val ceiledMiddle = (model.dimension.toFloat / 2).ceil.toInt
-    val initialMiddle = Coord(flooredMiddle, 0, ceiledMiddle) // NW
-    val finalMiddle = initialMiddle.copy(y = model.dimension - 1)
+    val middle = model.centerOfMass
+    val initialMiddle = middle.copy(y = 0) // NW
+    val finalMiddle = middle.copy(y = model.dimension - 1)
 
     def quadrant(coord: Coord): Quadrant = {
-      if (coord.x <= flooredMiddle && coord.z >= ceiledMiddle) NW
-      else if (coord.x >= ceiledMiddle && coord.z >= ceiledMiddle) NE
-      else if (coord.x <= flooredMiddle && coord.z <= flooredMiddle) SW
-      else if (coord.x >= ceiledMiddle && coord.z <= flooredMiddle) SE
+      if (coord.x <= middle.x && coord.z >= middle.z) NW
+      else if (coord.x >= middle.x && coord.z >= middle.z) NE
+      else if (coord.x <= middle.x && coord.z <= middle.z) SW
+      else if (coord.x >= middle.x && coord.z <= middle.z) SE
       else throw new Exception("Weird")
     }
 
