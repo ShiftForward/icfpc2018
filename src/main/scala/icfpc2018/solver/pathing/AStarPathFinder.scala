@@ -88,12 +88,13 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
 
     val stepCost = model.dimension * model.dimension * model.dimension
 
-    val visited = mutable.Map[Coord, Long]()
-    val prev = mutable.Map[Coord, (Coord, Command)]()
+    val visited = Array.fill(model.dimension, model.dimension, model.dimension)(-1l)
+    val prevCoord = Array.ofDim[Coord](model.dimension, model.dimension, model.dimension)
+    val prevCommand = Array.ofDim[Command](model.dimension, model.dimension, model.dimension)
 
     val pq = mutable.PriorityQueue[(Long, Coord)]()
     pq.enqueue((0, from))
-    visited(from) = 0
+    visited(from.x)(from.y)(from.z) = 0
 
     var keepGoing = true
 
@@ -102,22 +103,26 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
       val len = -nlen
       if (curr == to)
         keepGoing = false
-      if (visited(curr) >= len) {
+      if (visited(curr.x)(curr.y)(curr.z) >= len) {
         validMoves(curr).foreach {
           case SMove(lld) =>
             val nextCoord = curr + lld
             val cost = len + (2 * math.abs(lld.len)) + stepCost + curr.manhattanDistanceTo(nextCoord)
-            if (visited.get(nextCoord).isEmpty || visited(nextCoord) > cost) {
-              visited(nextCoord) = cost
-              prev(nextCoord) = (curr, SMove(lld))
+            val currV = visited(nextCoord.x)(nextCoord.y)(nextCoord.z)
+            if (currV == -1 || currV > cost) {
+              visited(nextCoord.x)(nextCoord.y)(nextCoord.z) = cost
+              prevCoord(nextCoord.x)(nextCoord.y)(nextCoord.z) = curr
+              prevCommand(nextCoord.x)(nextCoord.y)(nextCoord.z) = SMove(lld)
               pq.enqueue((-cost, nextCoord))
             }
           case LMove(sld1, sld2) =>
             val nextCoord = curr + sld1 + sld2
             val cost = len + (2 * (math.abs(sld1.len) + 2 + math.abs(sld2.len))) + stepCost + curr.manhattanDistanceTo(nextCoord)
-            if (visited.get(nextCoord).isEmpty || visited(nextCoord) > cost) {
-              visited(nextCoord) = cost
-              prev(nextCoord) = (curr, LMove(sld1, sld2))
+            val currV = visited(nextCoord.x)(nextCoord.y)(nextCoord.z)
+            if (currV == -1 || currV > cost) {
+              visited(nextCoord.x)(nextCoord.y)(nextCoord.z) = cost
+              prevCoord(nextCoord.x)(nextCoord.y)(nextCoord.z) = curr
+              prevCommand(nextCoord.x)(nextCoord.y)(nextCoord.z) = LMove(sld1, sld2)
               pq.enqueue((-cost, nextCoord))
             }
           case _ => // do nothing
@@ -128,10 +133,11 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
     var f = to
     val path = mutable.ListBuffer[Command]()
     while (f != from) {
-      if (prev.get(f).isEmpty)
+      val pCoord = prevCoord(f.x)(f.y)(f.z)
+      if (pCoord == null)
         return Nil
-      path += prev(f)._2
-      f = prev(f)._1
+      path += prevCommand(f.x)(f.y)(f.z)
+      f = pCoord
     }
 
     path.reverse.toList
