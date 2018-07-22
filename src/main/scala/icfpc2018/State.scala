@@ -1,14 +1,22 @@
 package icfpc2018
 
-import scala.collection.SortedSet
+import scala.collection.{ SortedSet, mutable }
 import scala.util.Try
 
 object Extensions {
-  implicit class IntToBase(val digits: Int) extends AnyVal {
-    def base(b: Int) = Integer.parseInt(digits.toString, b).toByte
-    def b = base(2)
-    def o = base(8)
-    def x = base(16)
+  private val baseCache = {
+    val m = mutable.Map[Int, mutable.Map[Int, Byte]]()
+    m(2) = mutable.Map[Int, Byte]()
+    m(8) = mutable.Map[Int, Byte]()
+    m(16) = mutable.Map[Int, Byte]()
+    m
+  }
+
+  implicit class IntToBase(digits: Int) {
+    def base(b: Int) = baseCache(b).getOrElseUpdate(digits, Integer.parseInt(digits.toString, b).toByte)
+    lazy val b = base(2)
+    lazy val o = base(8)
+    lazy val x = base(16)
   }
 }
 
