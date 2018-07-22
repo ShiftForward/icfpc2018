@@ -3,7 +3,7 @@ package icfpc2018.solver
 import scala.collection.mutable
 
 import icfpc2018._
-import icfpc2018.solver.SolverDSL.{ RequireHarmonics, SolverCommand }
+import icfpc2018.solver.SolverDSL.{ ReleaseHarmonics, RequireHarmonics, SolverCommand }
 
 object TracerSolver extends PartialSolver {
   def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
@@ -14,10 +14,16 @@ object TracerSolver extends PartialSolver {
     var y = from.y
     var z = from.z
     val commands = mutable.ListBuffer[SolverCommand]()
-    val len = dimension * dimension * dimension
-    commands += RequireHarmonics
+    val maxY = math.max(srcModel.voxels.maxBy(_.y).y, dstModel.voxels.maxBy(_.y).y)
+    val len = dimension * dimension * (maxY + 1)
+    var currModel = srcModel
+    var highHarmonics = false
 
-    (0 until len - 1).foreach { _ =>
+    def updateHarmonics() =
+      if (currModel.isGrounded && highHarmonics) commands += ReleaseHarmonics
+      else if (!currModel.isGrounded && !highHarmonics) commands += ReleaseHarmonics
+
+    (0 until len).foreach { _ =>
       val currentCoord = Coord(x, y, z)
       var nz = z
       var ny = y
@@ -44,10 +50,14 @@ object TracerSolver extends PartialSolver {
       }
 
       if (srcModel.get(Coord(nx, ny, nz)) == Full) {
+        currModel = currModel.void(Coord(nx, ny, nz))
+        updateHarmonics()
         commands += Void(NCD(nx - x, ny - y, nz - z))
       }
       commands += SMove(LLD(dir, diff))
       if (dstModel.get(currentCoord) == Full) {
+        currModel = currModel.fill(currentCoord)
+        updateHarmonics()
         commands += Fill(NCD(x - nx, y - ny, z - nz))
       }
 
