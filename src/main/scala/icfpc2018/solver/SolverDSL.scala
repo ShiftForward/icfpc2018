@@ -35,7 +35,7 @@ object SolverDSL {
     var harmonicsLock: Array[Boolean] = Array.fill(commands.size)(false)
     def requireHarmonics: Boolean = harmonicsLock.exists(identity)
     var remainingCommands: Seq[List[SolverCommand]] = commands
-    while (remainingCommands.flatten.nonEmpty) {
+    while (remainingCommands.exists(_.nonEmpty)) {
       val nextHarmonicsLock = harmonicsLock.clone()
       val nextCommands: Seq[Command] = remainingCommands.map(_.headOption).zipWithIndex.map {
         case (Some(RawCommand(cmd)), idx) =>
