@@ -34,7 +34,7 @@ object GreedySolver extends PartialSolver {
             requestedHarmonics = false
           }
 
-          val pf = new AStarPathFinder(currentModel)
+          val pf = new AStarPathFinder(currentModel, Set())
 
           val coordToMove = nextToPaint.copy(y = nextToPaint.y + 1)
           commands ++= pf.findPath(currentCoord, coordToMove).map(RawCommand)

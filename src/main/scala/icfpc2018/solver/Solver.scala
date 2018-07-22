@@ -19,7 +19,7 @@ trait PartialSolver extends RebuilderSolver {
     val (baseSolution, currentModel, currentCoord) = partialSolve(srcModel, dstModel, Coord(0, 0, 0))
 
     val returnToBase: List[SolverCommand] = if (currentCoord != Coord(0, 0, 0)) {
-      val pf = new AStarPathFinder(currentModel)
+      val pf = new AStarPathFinder(currentModel, Set())
       ReleaseHarmonics :: pf.findPath(currentCoord, Coord(0, 0, 0)).map(RawCommand)
     } else List(ReleaseHarmonics)
 

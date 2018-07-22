@@ -45,7 +45,7 @@ case class SplitSolver(innerSolver: PartialSolver) extends RebuilderSolver {
     }
 
     val commands = mutable.ListBuffer[Command]()
-    commands ++= new AStarPathFinder(emptyMatrix).findPath(Coord(0, 0, 0), initialMiddle)
+    commands ++= new AStarPathFinder(emptyMatrix, Set()).findPath(Coord(0, 0, 0), initialMiddle)
     commands += Fission(NCD(1, 0, 0), 2) // NW -> NE
     commands += Fission(NCD(0, 0, -1), 1) // NW -> SW
     commands += Fission(NCD(0, 0, -1), 1) // NE -> SE
@@ -54,7 +54,7 @@ case class SplitSolver(innerSolver: PartialSolver) extends RebuilderSolver {
       val endPos = startPos.copy(y = dimensions - 1)
       val (buildCommands, finalMatrix, finalCoord) =
         innerSolver.partialSolve(srcQuadrant, dstQuadrant, startPos)
-      val pf = new AStarPathFinder(finalMatrix)
+      val pf = new AStarPathFinder(finalMatrix, Set())
       (buildCommands ++ pf.findPath(finalCoord, endPos).map(RawCommand),
         finalMatrix,
         endPos)
@@ -72,7 +72,7 @@ case class SplitSolver(innerSolver: PartialSolver) extends RebuilderSolver {
         m.fill(v)
     }
 
-    val finalPf = new AStarPathFinder(expectedFinalModel)
+    val finalPf = new AStarPathFinder(expectedFinalModel, Set())
 
     commands ++= SolverDSL.toFlatCommands(childrenCommands.map(_._1))
 

@@ -4,16 +4,16 @@ import scala.collection.mutable
 
 import icfpc2018._
 
-class AStarPathFinder(model: Matrix) {
-  private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
+class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
+  /*private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
     if (math.abs(len) > 5 || !model.validAndNotFilled(from + LLD(dir, len))) {
       Nil
     } else {
       SMove(LLD(dir, len)) :: validShortMovesAux(from, dir, len + dl, dl)
-    }
+    }*/
 
   private[this] def validMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] = {
-    if (math.abs(len) > 15 || !model.validAndNotFilled(from + LLD(dir, len))) {
+    if (math.abs(len) > 15 || !model.validAndNotFilled(from + LLD(dir, len)) || botPositions.contains(from + LLD(dir, len))) {
       Nil
     } else {
       val lld = LLD(dir, len)
@@ -128,6 +128,8 @@ class AStarPathFinder(model: Matrix) {
     var f = to
     val path = mutable.ListBuffer[Command]()
     while (f != from) {
+      if (prev.get(f).isEmpty)
+        return Nil
       path += prev(f)._2
       f = prev(f)._1
     }

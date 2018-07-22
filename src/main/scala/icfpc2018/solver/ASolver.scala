@@ -13,8 +13,8 @@ class ASolver(model: Matrix, nseeds: Int) {
   lazy val botSplits: Map[Int, List[Action]] = {
     val voxels = mutable.Set(model.voxels.toList: _*)
 
-    val dx = 5
-    val dz = 4
+    val dx = 2
+    val dz = 2
 
     val sx = voxels.toList.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).toList
     val sz = voxels.toList.sortBy(_.z).grouped((voxels.size + dz - 1) / dz).toList
@@ -69,7 +69,7 @@ class ASolver(model: Matrix, nseeds: Int) {
 
       val doNegativeFlip = (flipped && currentModel.isGrounded && !botState.exists(_.requiresHarmonics))
 
-      val pf = new AStarPathFinder(currentModel)
+      val pf = new AStarPathFinder(currentModel, botState.map(_.bot.pos).toSet)
 
       botState.toList.foreach { s =>
         val b = s.bot
@@ -110,7 +110,9 @@ class ASolver(model: Matrix, nseeds: Int) {
                 }
               } else {
                 val path = pf.findPath(b.pos, coordToMove)
-                if (addCommand(s.bot.pos, path.head)) {
+                if (path.isEmpty)
+                  addCommand(s.bot.pos, Wait)
+                else if (addCommand(s.bot.pos, path.head)) {
                   path.head match {
                     case SMove(lld) =>
                       s.bot = b.copy(pos = b.pos + lld)
@@ -128,7 +130,9 @@ class ASolver(model: Matrix, nseeds: Int) {
                 addCommand(s.bot.pos, Wait)
               else {
                 val path = pf.findPath(s.bot.pos, coord)
-                if (addCommand(s.bot.pos, path.head)) {
+                if (path.isEmpty)
+                  addCommand(s.bot.pos, Wait)
+                else if (addCommand(s.bot.pos, path.head)) {
                   path.head match {
                     case SMove(lld) =>
                       s.bot = s.bot.copy(pos = s.bot.pos + lld)
@@ -229,6 +233,6 @@ object ASolver extends Solver {
   case object DoJoin extends Action
 
   def solve(model: Matrix): List[Command] = {
-    new ASolver(model, 20).solve()
+    new ASolver(model, 4).solve()
   }
 }
