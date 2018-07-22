@@ -194,7 +194,7 @@ object Matrix {
   case class CoordSet(innerBuffer: BitSet = BitSet.empty) extends Set[Coord] {
     @inline
     final def fromBinary(binary: Int): Coord = Coord((binary >> 16) & 0xFF, (binary >> 8) & 0xFF, binary & 0xFF)
-
+    override lazy val isEmpty = innerBuffer.isEmpty
     override def contains(elem: Coord): Boolean = innerBuffer(elem.toBinary)
     override def +(elem: Coord): CoordSet = copy(innerBuffer + elem.toBinary)
     def ++(that: CoordSet): CoordSet = CoordSet(this.innerBuffer | that.innerBuffer)
