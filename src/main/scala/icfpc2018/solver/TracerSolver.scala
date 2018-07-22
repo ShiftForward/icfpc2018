@@ -7,14 +7,16 @@ import icfpc2018.solver.SolverDSL.{ ReleaseHarmonics, RequireHarmonics, SolverCo
 
 object TracerSolver extends PartialSolver {
   def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
-    val dimension = dstModel.dimension
     var dx = 1
     var dz = 1
     var x = from.x
     var y = from.y
     var z = from.z
     val commands = mutable.ListBuffer[SolverCommand]()
+    val maxX = (srcModel.voxels ++ dstModel.voxels).maxBy(_.x).x
     val maxY = (srcModel.voxels ++ dstModel.voxels).maxBy(_.y).y
+    val maxZ = (srcModel.voxels ++ dstModel.voxels).maxBy(_.z).z
+    val dimension = math.max(maxX, maxZ) + 1
     val len = dimension * dimension * (maxY + 1)
     var currModel = srcModel
     var highHarmonics = false
