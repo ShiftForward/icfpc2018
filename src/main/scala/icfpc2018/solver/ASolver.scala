@@ -13,7 +13,7 @@ class ASolver(model: Matrix, nseeds: Int) {
   lazy val botSplits: Map[Int, List[Coord]] = {
     val voxels = mutable.Set(model.voxels.toList: _*)
 
-    val dx = 2
+    val dx = 5
     val dz = 2
 
     val sx = voxels.toList.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).toList
@@ -137,9 +137,10 @@ class ASolver(model: Matrix, nseeds: Int) {
             case Delete(coord) => // todo
 
             case GoTo(coord) =>
-              if (s.bot.pos == coord)
+              if (s.bot.pos == coord) {
                 addCommand(s.bot.pos, Wait)
-              else {
+                s.actions.dequeue()
+              } else {
                 val path = pf.findPath(s.bot.pos, coord)
                 if (path.isEmpty)
                   addCommand(s.bot.pos, Wait)
@@ -257,7 +258,7 @@ object ASolver extends Solver {
   case object DoJoin extends Action
 
   def solve(model: Matrix): List[Command] = {
-    new ASolver(model, 4).solve()
+    new ASolver(model, 10).solve()
   }
 
   def zigZagOnX(current: Coord, pointsToPaint: List[Coord]): Coord = {
