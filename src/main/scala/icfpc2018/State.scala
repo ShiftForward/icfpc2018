@@ -84,6 +84,14 @@ case class Coord(x: Int, y: Int, z: Int) {
     math.abs(coord.x - x) + math.abs(coord.y - y) + math.abs(coord.z - z)
 
   lazy val toBinary: Int = (x << 16) | (y << 8) | z
+
+  override def hashCode(): Int = toBinary
+
+  override def equals(obj: scala.Any): Boolean =
+    if (!obj.isInstanceOf[Coord])
+      false
+    else
+      hashCode() == obj.hashCode()
 }
 
 object Coord {
