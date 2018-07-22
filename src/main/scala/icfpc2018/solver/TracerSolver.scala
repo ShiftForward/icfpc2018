@@ -7,15 +7,17 @@ import icfpc2018.solver.SolverDSL.{ ReleaseHarmonics, RequireHarmonics, SolverCo
 
 object TracerSolver extends PartialSolver {
   def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
-    val dimension = dstModel.dimension
     var dx = 1
     var dz = 1
     var x = from.x
     var y = from.y
     var z = from.z
     val commands = mutable.ListBuffer[SolverCommand]()
+    val maxX = (srcModel.voxels ++ dstModel.voxels).maxBy(_.x).x
     val maxY = (srcModel.voxels ++ dstModel.voxels).maxBy(_.y).y
-    val len = dimension * dimension * (maxY + 1)
+    val maxZ = (srcModel.voxels ++ dstModel.voxels).maxBy(_.z).z
+    val dimension = math.max(maxX, maxZ) + 1
+    val len = (maxX + 1) * (maxY + 1) * (maxZ + 1)
     var currModel = srcModel
     var highHarmonics = false
 
@@ -25,14 +27,14 @@ object TracerSolver extends PartialSolver {
       var ny = y
       var nx = x
       nz += dz
-      if (nz >= dimension || nz < 0) {
-        nz = if (nz == dimension) dimension - 1 else 0
+      if (nz >= (maxZ + 1) || nz < 0) {
+        nz = if (nz == (maxZ + 1)) maxZ else 0
         nx += dx
         dz = if (dz == 1) -1 else 1
       }
 
-      if (nx >= dimension || nx < 0) {
-        nx = if (nx == dimension) dimension - 1 else 0
+      if (nx >= (maxX + 1) || nx < 0) {
+        nx = if (nx == (maxX + 1)) maxX else 0
         ny += 1
         dx = if (dx == 1) -1 else 1
       }

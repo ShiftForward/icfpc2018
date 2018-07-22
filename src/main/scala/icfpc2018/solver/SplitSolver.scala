@@ -34,7 +34,7 @@ case class SplitSolver(innerSolver: PartialSolver) extends RebuilderSolver {
         }
     }
 
-    val dstQuadrants = srcModel.voxels.foldLeft((emptyMatrix, emptyMatrix, emptyMatrix, emptyMatrix)) {
+    val dstQuadrants = dstModel.voxels.foldLeft((emptyMatrix, emptyMatrix, emptyMatrix, emptyMatrix)) {
       case ((nw, ne, sw, se), voxel) =>
         quadrant(voxel) match {
           case NW => (nw.fill(voxel), ne, sw, se)
