@@ -6,12 +6,13 @@ import icfpc2018.solver.pathing.AStarPathFinder
 import icfpc2018._
 import icfpc2018.solver.SolverDSL.{ RawCommand, SolverCommand }
 
-case class SplitSolver(innerSolver: SimpleSolver) extends Solver {
-  def solve(model: Matrix): List[Command] = {
+case class SplitSolver(innerSolver: PartialSolver) extends RebuilderSolver {
+  def solve(srcModel: Matrix, dstModel: Matrix): List[Command] = {
 
-    val middle = model.centerOfMass
+    val dimensions = dstModel.dimension
+    val middle = dstModel.centerOfMass
     val initialMiddle = middle.copy(y = 0) // NW
-    val finalMiddle = middle.copy(y = model.dimension - 1)
+    val finalMiddle = middle.copy(y = dimensions - 1)
 
     def quadrant(coord: Coord): Quadrant = {
       if (coord.x <= middle.x && coord.z >= middle.z) NW
@@ -21,9 +22,19 @@ case class SplitSolver(innerSolver: SimpleSolver) extends Solver {
       else throw new Exception("Weird")
     }
 
-    val emptyMatrix = Matrix(model.dimension)
+    val emptyMatrix = Matrix(dimensions)
 
-    val quadrants = model.voxels.foldLeft((emptyMatrix, emptyMatrix, emptyMatrix, emptyMatrix)) {
+    val srcQuadrants = srcModel.voxels.foldLeft((emptyMatrix, emptyMatrix, emptyMatrix, emptyMatrix)) {
+      case ((nw, ne, sw, se), voxel) =>
+        quadrant(voxel) match {
+          case NW => (nw.fill(voxel), ne, sw, se)
+          case NE => (nw, ne.fill(voxel), sw, se)
+          case SW => (nw, ne, sw.fill(voxel), se)
+          case SE => (nw, ne, sw, se.fill(voxel))
+        }
+    }
+
+    val dstQuadrants = srcModel.voxels.foldLeft((emptyMatrix, emptyMatrix, emptyMatrix, emptyMatrix)) {
       case ((nw, ne, sw, se), voxel) =>
         quadrant(voxel) match {
           case NW => (nw.fill(voxel), ne, sw, se)
@@ -39,10 +50,10 @@ case class SplitSolver(innerSolver: SimpleSolver) extends Solver {
     commands += Fission(NCD(0, 0, -1), 1) // NW -> SW
     commands += Fission(NCD(0, 0, -1), 1) // NE -> SE
 
-    def childCommands(quadrant: Matrix, startPos: Coord) = {
-      val endPos = startPos.copy(y = model.dimension - 1)
+    def childCommands(srcQuadrant: Matrix, dstQuadrant: Matrix, startPos: Coord) = {
+      val endPos = startPos.copy(y = dimensions - 1)
       val (buildCommands, finalMatrix, finalCoord) =
-        innerSolver.baseSolve(quadrant, startPos)
+        innerSolver.partialSolve(srcQuadrant, dstQuadrant, startPos)
       val pf = new AStarPathFinder(finalMatrix)
       (buildCommands ++ pf.findPath(finalCoord, endPos).map(RawCommand),
         finalMatrix,
@@ -50,10 +61,10 @@ case class SplitSolver(innerSolver: SimpleSolver) extends Solver {
     }
 
     val childrenCommands = List(
-      () => childCommands(quadrants._1, initialMiddle), // NW (1)
-      () => childCommands(quadrants._2, initialMiddle.copy(x = initialMiddle.x + 1)), // NE (2)
-      () => childCommands(quadrants._4, initialMiddle.copy(x = initialMiddle.x + 1, z = initialMiddle.z - 1)), // SE (3)
-      () => childCommands(quadrants._3, initialMiddle.copy(z = initialMiddle.z - 1)) // SW (4)
+      () => childCommands(srcQuadrants._1, dstQuadrants._1, initialMiddle), // NW (1)
+      () => childCommands(srcQuadrants._2, dstQuadrants._2, initialMiddle.copy(x = initialMiddle.x + 1)), // NE (2)
+      () => childCommands(srcQuadrants._4, dstQuadrants._4, initialMiddle.copy(x = initialMiddle.x + 1, z = initialMiddle.z - 1)), // SE (3)
+      () => childCommands(srcQuadrants._3, dstQuadrants._3, initialMiddle.copy(z = initialMiddle.z - 1)) // SW (4)
     ).par.map(_.apply()).toList
 
     val expectedFinalModel = childrenCommands.flatMap(_._2.voxels.iterator).toSet.foldLeft(emptyMatrix) {

@@ -8,16 +8,22 @@ trait Solver {
   def solve(model: Matrix): List[Command]
 }
 
-trait SimpleSolver extends Solver {
-  def baseSolve(model: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord)
-  def solve(model: Matrix): List[Command] = {
-    val (baseSolution, currentModel, currentCoord) = baseSolve(model, Coord(0, 0, 0))
+trait RebuilderSolver extends Solver {
+  def solve(srcModel: Matrix, dstModel: Matrix): List[Command]
+  def solve(model: Matrix): List[Command] = solve(Matrix(model.dimension), model)
+}
+
+trait PartialSolver extends RebuilderSolver {
+  def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord)
+  def solve(srcModel: Matrix, dstModel: Matrix): List[Command] = {
+    val (baseSolution, currentModel, currentCoord) = partialSolve(srcModel, dstModel, Coord(0, 0, 0))
 
     val returnToBase: List[SolverCommand] = if (currentCoord != Coord(0, 0, 0)) {
       val pf = new AStarPathFinder(currentModel)
       ReleaseHarmonics :: pf.findPath(currentCoord, Coord(0, 0, 0)).map(RawCommand)
-    } else Nil
+    } else List(ReleaseHarmonics)
 
-    SolverDSL.toCommands(baseSolution ++ returnToBase ++ List(RawCommand(Halt)))
+    val res = SolverDSL.toCommands(baseSolution ++ returnToBase ++ List(RawCommand(Halt)))
+    res
   }
 }

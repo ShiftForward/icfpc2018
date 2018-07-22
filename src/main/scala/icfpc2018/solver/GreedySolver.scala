@@ -6,13 +6,14 @@ import icfpc2018._
 import icfpc2018.solver.pathing.AStarPathFinder
 import icfpc2018.solver.SolverDSL._
 
-object GreedySolver extends SimpleSolver {
-  def baseSolve(model: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
-    val toPaint = model.voxels.groupBy(_.y)
+object GreedySolver extends PartialSolver {
+  def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
+    val dimensions = dstModel.dimension
+    val toPaint = (dstModel.voxels -- srcModel.voxels).groupBy(_.y)
     val commands = mutable.ListBuffer[SolverCommand]()
 
     var currentCoord = from
-    var currentModel = Matrix(model.dimension)
+    var currentModel = Matrix(dimensions)
     var requestedHarmonics = false
 
     commands += SMove(LLD(Y, 1))
@@ -50,7 +51,7 @@ object GreedySolver extends SimpleSolver {
           pointsToPaint = pointsToPaint - nextToPaint
         }
 
-        if (currentCoord.y + 1 < model.dimension) {
+        if (currentCoord.y + 1 < dimensions) {
           commands += SMove(LLD(Y, 1))
           currentCoord = currentCoord.copy(y = currentCoord.y + 1)
         }

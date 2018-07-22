@@ -5,15 +5,16 @@ import scala.collection.mutable
 import icfpc2018._
 import icfpc2018.solver.SolverDSL.{ RequireHarmonics, SolverCommand }
 
-object TracerSolver extends SimpleSolver {
-  def baseSolve(model: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
+object TracerSolver extends PartialSolver {
+  def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
+    val dimension = dstModel.dimension
     var dx = 1
     var dz = 1
     var x = from.x
     var y = from.y
     var z = from.z
     val commands = mutable.ListBuffer[SolverCommand]()
-    val len = model.dimension * model.dimension * model.dimension
+    val len = dimension * dimension * dimension
     commands += RequireHarmonics
 
     (0 until len - 1).foreach { _ =>
@@ -22,14 +23,14 @@ object TracerSolver extends SimpleSolver {
       var ny = y
       var nx = x
       nz += dz
-      if (nz >= model.dimension || nz < 0) {
-        nz = if (nz == model.dimension) model.dimension - 1 else 0
+      if (nz >= dimension || nz < 0) {
+        nz = if (nz == dimension) dimension - 1 else 0
         nx += dx
         dz = if (dz == 1) -1 else 1
       }
 
-      if (nx >= model.dimension || nx < 0) {
-        nx = if (nx == model.dimension) model.dimension - 1 else 0
+      if (nx >= dimension || nx < 0) {
+        nx = if (nx == dimension) dimension - 1 else 0
         ny += 1
         dx = if (dx == 1) -1 else 1
       }
@@ -42,8 +43,11 @@ object TracerSolver extends SimpleSolver {
         (Z, nz - z)
       }
 
+      if (srcModel.get(Coord(nx, ny, nz)) == Full) {
+        commands += Void(NCD(nx - x, ny - y, nz - z))
+      }
       commands += SMove(LLD(dir, diff))
-      if (model.get(currentCoord) == Full) {
+      if (dstModel.get(currentCoord) == Full) {
         commands += Fill(NCD(x - nx, y - ny, z - nz))
       }
 
@@ -69,6 +73,6 @@ object TracerSolver extends SimpleSolver {
       commands += SMove(LLD(Y, dist))
       y += dist
     }
-    (commands.toList, model, Coord(0, 0, 0))
+    (commands.toList, dstModel, Coord(0, 0, 0))
   }
 }
