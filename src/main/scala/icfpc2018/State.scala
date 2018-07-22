@@ -58,6 +58,10 @@ case class Coord(x: Int, y: Int, z: Int) {
   def +(nd: NCD): Coord =
     Coord(x + nd.dx, y + nd.dy, z + nd.dz)
 
+  def +(fd: FCD): Coord = {
+    Coord(x + fd.dx, y + fd.dy, z + fd.dz)
+  }
+
   def rangeToIterator(cd: CoordinateDifference): Iterator[Coord] = {
     def nextCd(cd: CoordinateDifference) = cd match {
       case LLD(a, len) => LLD(a, len + (if (len > 0) -1 else 1))

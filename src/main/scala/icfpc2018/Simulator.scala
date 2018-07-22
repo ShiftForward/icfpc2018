@@ -81,14 +81,40 @@ object Simulator {
       (st.copy(bots = st.bots - bot + newBot), thisVolCoords)
     }
 
+    def fillRegionAux(matrix: Matrix, from: Coord, to: Coord): (Matrix, Long) = {
+      val xxs =
+        if (from.x < to.x) from.x to to.x
+        else to.x to from.x
+      val yys =
+        if (from.y < to.y) from.y to to.y
+        else to.y to from.y
+      val zzs =
+        if (from.z < to.z) from.z to to.z
+        else to.z to from.z
+
+      val coords = for {
+        x <- xxs
+        y <- yys
+        z <- zzs
+      } yield (x, y, z)
+
+      coords.foldLeft((matrix, 0l)) {
+        case ((m, e), (x, y, z)) =>
+          val energy =
+            if (m.get(Coord(x, y, z)) == Full) 6
+            else 12
+          (m.fill(Coord(x, y, z)), e + energy)
+      }
+    }
+
     val botCmdPairs = mutable.ListBuffer(currentBotSet.zip(currentCmdSet).toArray: _*)
     var endState = initState
     var endVolCoords = List.empty[Coord]
 
     while (botCmdPairs.nonEmpty) {
-      val next: (Bot, Command) = botCmdPairs.head
-      botCmdPairs -= next
-      val (nextBot: Bot, nextCmd) = next
+      val nextPair = botCmdPairs.head
+      botCmdPairs -= nextPair
+      val (nextBot: Bot, nextCmd) = nextPair
 
       nextCmd match {
         case Halt =>
@@ -183,6 +209,35 @@ object Simulator {
           val fusedBot = primBot.copy(seeds = primBot.seeds + secBot.bid ++ secBot.seeds)
           endState = endState.copy(energy = endState.energy - 24, bots = endState.bots - primBot - secBot + fusedBot)
           endVolCoords = List(primBot.pos, secBot.pos) ::: endVolCoords
+
+        case _: GFill =>
+          // put it back
+          nextPair +=: botCmdPairs
+
+          val gFills = botCmdPairs.filter { _._2.isInstanceOf[GFill] }
+          if (gFills.size % 2 != 0) throw CommandException(s"GFill commands cannot be paired1", nextCmd, endState, nextBot)
+          val groupings = (for {
+            (b1, g1 @ GFill(nd1, fd1)) <- gFills
+            (b2, g2 @ GFill(nd2, fd2)) <- gFills
+            if ((b1.pos + nd1) + fd1) == (b2.pos + nd2) && (b2.pos + nd2) + fd2 == (b1.pos + nd1)
+          } yield Set((b1, g1), (b2, g2))).distinct.map(_.toList).toList
+
+          if (groupings.isEmpty || !Set(1, 2, 4).contains(groupings.size))
+            throw CommandException(s"GFill commands cannot be paired", nextCmd, endState, nextBot)
+
+          // remove processed commands from the list so they are not picked again
+          groupings.flatten.foreach(t => botCmdPairs -= t)
+
+          // fill a region
+          groupings.head match {
+            // any diagonal line works
+            case (b1, GFill(nd1, _)) :: (b2, GFill(nd2, _)) :: _ =>
+              val start = b1.pos + nd1
+              val end = b2.pos + nd2
+              val (m, energy) = fillRegionAux(endState.matrix, start, end)
+              endState = endState.copy(matrix = m, energy = endState.energy + energy)
+          }
+
       }
     }
 
