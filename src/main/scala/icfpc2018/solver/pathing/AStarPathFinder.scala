@@ -5,6 +5,11 @@ import scala.collection.mutable
 import icfpc2018._
 
 class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
+  if (AStarPathFinder.yCacheDim != model.dimension) {
+    AStarPathFinder.yCacheDim = model.dimension
+    AStarPathFinder.yPathCache.clear()
+  }
+
   /*private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
     if (math.abs(len) > 5 || !model.validAndNotFilled(from + LLD(dir, len))) {
       Nil
@@ -36,7 +41,7 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
     Dir.all.flatMap { dir => validMovesAux(from, dir, 1, 1) ++ validMovesAux(from, dir, -1, -1) }
 
   private[this] def yFindPathAux(from: Coord, to: Coord, cache: mutable.Map[Coord, List[Command]]): List[Command] =
-    cache.getOrElseUpdate(from, {
+    cache.getOrElseUpdate(Coord(to.x - from.x, to.y - from.y, to.z - from.z), {
       if (from == to)
         Nil
       else if (from.z == to.z) {
@@ -80,7 +85,7 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
       }
     })
 
-  def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to, mutable.Map()).reverse
+  def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to, AStarPathFinder.yPathCache).reverse
 
   def findPath(from: Coord, to: Coord): List[Command] = {
     if (from.y == to.y && model.countY(from.y) == 0)
@@ -142,4 +147,9 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
 
     path.reverse.toList
   }
+}
+
+object AStarPathFinder {
+  var yCacheDim = 0
+  val yPathCache = mutable.Map[Coord, List[Command]]()
 }
