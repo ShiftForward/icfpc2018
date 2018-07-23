@@ -15,7 +15,11 @@ class ASolver(model: Matrix, nseeds: Int) {
     val vvoxels = voxels.toVector
 
     val dx = 5
-    val dz = 2
+    val dz = nseeds match {
+      case 30 => 6
+      case 20 => 4
+      case 10 => 2
+    }
 
     val sx = vvoxels.sortBy(_.x).grouped((voxels.size + dx - 1) / dx).map(_.maxBy(_.x).x).toVector
     val sz = vvoxels.sortBy(_.z).grouped((voxels.size + dz - 1) / dz).map(_.maxBy(_.z).z).toVector
@@ -258,7 +262,12 @@ object ASolver extends Solver {
   case object DoJoin extends Action
 
   def solve(model: Matrix): List[Command] = {
-    new ASolver(model, 10).solve()
+    if (model.dimension > 30)
+      new ASolver(model, 30).solve()
+    else if (model.dimension > 20)
+      new ASolver(model, 20).solve()
+    else
+      new ASolver(model, 10).solve()
   }
 
   def zigZagOnX(current: Coord, pointsToPaint: List[Coord]): Coord = {
