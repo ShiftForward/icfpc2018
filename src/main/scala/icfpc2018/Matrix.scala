@@ -11,10 +11,7 @@ import icfpc2018.Matrix.CoordSet
 case class Matrix(
   dimension: Int,
   groundedVoxels: CoordSet = CoordSet(),
-  ungroundedVoxels: CoordSet = CoordSet(),
-  countX: Map[Int, Int] = Map[Int, Int]().withDefaultValue(0),
-  countY: Map[Int, Int] = Map[Int, Int]().withDefaultValue(0),
-  countZ: Map[Int, Int] = Map[Int, Int]().withDefaultValue(0)) {
+  ungroundedVoxels: CoordSet = CoordSet()) {
   require(dimension <= 250, "Max matrix dimension is 250")
 
   lazy val voxels: Set[Coord] = groundedVoxels ++ ungroundedVoxels
@@ -161,10 +158,7 @@ case class Matrix(
     } else (groundedVoxels, ungroundedVoxels + coord)
     copy(
       groundedVoxels = newGrounded,
-      ungroundedVoxels = newUngrounded,
-      countX = countX.updated(coord.x, countX(coord.x) + 1),
-      countY = countY.updated(coord.y, countY(coord.y) + 1),
-      countZ = countZ.updated(coord.z, countZ(coord.z) + 1))
+      ungroundedVoxels = newUngrounded)
   }
 
   def void(coord: Coord): Matrix = {
@@ -182,10 +176,7 @@ case class Matrix(
   def unsafeFill(coord: Coord): Matrix = {
     require(canFillCoord(coord), s"Can't fill coordinate: $coord")
     copy(
-      groundedVoxels = groundedVoxels + coord,
-      countX = countX.updated(coord.x, countX(coord.x) + 1),
-      countY = countY.updated(coord.y, countY(coord.y) + 1),
-      countZ = countZ.updated(coord.z, countZ(coord.z) + 1))
+      groundedVoxels = groundedVoxels + coord)
   }
 }
 
@@ -226,10 +217,7 @@ object Matrix {
     require(coordSet.forall(dummy.canFillCoord))
     Matrix(
       dimension,
-      groundedVoxels = coordSet,
-      countX = coordSet.groupBy(_.x).map { case (k, v) => k -> v.size }.withDefaultValue(0),
-      countY = coordSet.groupBy(_.y).map { case (k, v) => k -> v.size }.withDefaultValue(0),
-      countZ = coordSet.groupBy(_.z).map { case (k, v) => k -> v.size }.withDefaultValue(0))
+      groundedVoxels = coordSet)
   }
 
   def fromMdl(mdlFile: File): Matrix = {
