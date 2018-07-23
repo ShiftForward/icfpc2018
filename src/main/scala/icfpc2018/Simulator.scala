@@ -177,8 +177,8 @@ object Simulator {
           if (nextBot.seeds.size < m) {
             throw CommandException(s"Invalid m", nextCmd, endState, nextBot)
           }
-          val updatedBot = nextBot.copy(seeds = nextBot.seeds.drop(m))
-          val clonedBotSeeds = nextBot.seeds.slice(0, m)
+          val updatedBot = nextBot.copy(seeds = nextBot.seeds.drop(m + 1))
+          val clonedBotSeeds = nextBot.seeds.slice(0, m + 1)
           val clonedBot = Bot(clonedBotSeeds.head, cPrime, clonedBotSeeds.drop(1))
           endState = endState.copy(energy = endState.energy + 24, bots = endState.bots - nextBot + updatedBot + clonedBot)
           endVolCoords = List(nextBot.pos, cPrime) ::: endVolCoords
