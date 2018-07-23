@@ -86,7 +86,8 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
     if (from.y == to.y) {
       val dx = if (to.x - from.x == 0) 1 else math.signum(to.x - from.x)
       val dz = if (to.z - from.z == 0) 1 else math.signum(to.z - from.z)
-      if ((from.x to to.x by dx).forall(x => (from.z to to.z by dz).forall(z => model.get(Coord(x, from.y, z)) == Void)))
+      if ((from.x to to.x by dx).forall(x => (from.z to to.z by dz).forall(
+        z => model.get(Coord(x, from.y, z)) == Void && !botPositions.contains(Coord(x, from.y, z)))))
         return yFindPath(from, to)
     }
 
