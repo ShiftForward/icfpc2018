@@ -6,7 +6,7 @@ import icfpc2018._
 import icfpc2018.solver.SolverDSL.{ RawCommand, ReleaseHarmonics, RequireHarmonics, SolverCommand }
 import icfpc2018.solver.pathing.AStarPathFinder
 
-object TracerSolver extends PartialSolver {
+case class TracerSolver(topDown: Boolean) extends PartialSolver {
   def partialSolve(srcModel: Matrix, dstModel: Matrix, from: Coord): (List[SolverCommand], Matrix, Coord) = {
     var dx = 1
     var dz = 1
@@ -19,13 +19,14 @@ object TracerSolver extends PartialSolver {
     val maxY = (srcModel.voxels ++ dstModel.voxels).maxBy(_.y).y
     val maxZ = (srcModel.voxels ++ dstModel.voxels).maxBy(_.z).z
 
-    val len = (maxX + 1 - (minX - 1)) * (maxY + 1) * (maxZ + 1 - (minZ - 1))
+    val len = ((maxX + 1 - (minX - 1)) * (maxY + 1) * (maxZ + 1 - (minZ - 1))) - (if (topDown) 1 else 0)
 
     commands ++=
-      new AStarPathFinder(srcModel, Set()).findPath(from, Coord(minX - 1, 0, minZ - 1)).map(RawCommand)
+      new AStarPathFinder(srcModel, Set()).
+      findPath(from, Coord(minX - 1, if (topDown) maxY else 0, minZ - 1)).map(RawCommand)
 
     var x = minX - 1
-    var y = 0
+    var y = if (topDown) maxY else 0
     var z = minZ - 1
 
     var currModel = srcModel
@@ -45,7 +46,7 @@ object TracerSolver extends PartialSolver {
 
       if (nx >= (maxX + 1) || nx < (minX - 1)) {
         nx = if (nx == (maxX + 1)) maxX else (minX - 1)
-        ny += 1
+        ny += (if (topDown) -1 else 1)
         dx = if (dx == 1) -1 else 1
       }
 

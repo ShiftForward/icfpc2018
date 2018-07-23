@@ -68,8 +68,8 @@ object FullMain extends Main {
       }.toList.sortBy(_.toString)
 
   val assemblySolver: Solver = ASolver
-  val disassemblySolver: RebuilderSolver = TracerSolver
-  val reassemblySolver: RebuilderSolver = TracerSolver
+  val disassemblySolver: RebuilderSolver = TracerSolver(true)
+  val reassemblySolver: RebuilderSolver = TracerSolver(false)
 
   println("Running Assembly Problems...")
   assemblyModels.foreach { modelPath =>
