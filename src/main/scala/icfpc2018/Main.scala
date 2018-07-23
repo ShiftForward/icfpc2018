@@ -33,7 +33,7 @@ object LightningMain extends Main {
   val models = Files.list(Paths.get("models", "lightning")).iterator().asScala.toList
     .filter(_.toString.endsWith(".mdl"))
     .sortBy(_.toString)
-  val solver: Solver = GreedySolver
+  val solver: Solver = ASolver
 
   models.foreach { modelPath =>
     println("Parsing model " + modelPath.toString)
@@ -67,7 +67,7 @@ object FullMain extends Main {
         case f1 :: f2 :: Nil => if (f1.getFileName.toString.contains("src")) (f1, f2) else (f2, f1)
       }.toList.sortBy(_.toString)
 
-  val assemblySolver: Solver = GreedySolver
+  val assemblySolver: Solver = ASolver
   val disassemblySolver: RebuilderSolver = TracerSolver
   val reassemblySolver: RebuilderSolver = TracerSolver
 
