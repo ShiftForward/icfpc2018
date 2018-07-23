@@ -83,8 +83,12 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
   def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to).reverse
 
   def findPath(from: Coord, to: Coord): List[Command] = {
-    if (from.y == to.y && model.countY(from.y) == 0)
-      return yFindPath(from, to)
+    if (from.y == to.y) {
+      val dx = if (to.x - from.x == 0) 1 else math.signum(to.x - from.x)
+      val dz = if (to.z - from.z == 0) 1 else math.signum(to.z - from.z)
+      if ((from.x to to.x by dx).forall(x => (from.z to to.z by dz).forall(z => model.get(Coord(x, from.y, z)) == Void)))
+        return yFindPath(from, to)
+    }
 
     val stepCost = model.dimension * model.dimension * model.dimension
 
