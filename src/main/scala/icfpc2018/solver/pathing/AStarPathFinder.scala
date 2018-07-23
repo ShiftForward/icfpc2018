@@ -5,11 +5,6 @@ import scala.collection.mutable
 import icfpc2018._
 
 class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
-  if (AStarPathFinder.yCacheDim != model.dimension) {
-    AStarPathFinder.yCacheDim = model.dimension
-    AStarPathFinder.yPathCache.clear()
-  }
-
   /*private[this] def validShortMovesAux(from: Coord, dir: Dir, len: Int, dl: Int): List[Command] =
     if (math.abs(len) > 5 || !model.validAndNotFilled(from + LLD(dir, len))) {
       Nil
@@ -40,8 +35,8 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
   private[this] def validMoves(from: Coord): List[Command] =
     Dir.all.flatMap { dir => validMovesAux(from, dir, 1, 1) ++ validMovesAux(from, dir, -1, -1) }
 
-  private[this] def yFindPathAux(from: Coord, to: Coord, cache: mutable.Map[Coord, List[Command]]): List[Command] =
-    cache.getOrElseUpdate(Coord(to.x - from.x, to.y - from.y, to.z - from.z), {
+  private[this] def yFindPathAux(from: Coord, to: Coord): List[Command] =
+    AStarPathFinder.yPathCache.getOrElseUpdate(Coord(to.x - from.x, to.y - from.y, to.z - from.z), {
       if (from == to)
         Nil
       else if (from.z == to.z) {
@@ -50,14 +45,14 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
           LLD(X, math.signum(len) * 15)
         else
           LLD(X, len)
-        SMove(lld) :: yFindPathAux(from + lld, to, cache)
+        SMove(lld) :: yFindPathAux(from + lld, to)
       } else if (from.x == to.x) {
         val len = to.z - from.z
         val lld = if (math.abs(len) > 15)
           LLD(Z, math.signum(len) * 15)
         else
           LLD(Z, len)
-        SMove(lld) :: yFindPathAux(from + lld, to, cache)
+        SMove(lld) :: yFindPathAux(from + lld, to)
       } else {
         val diffX = to.x - from.x
         val diffZ = to.z - from.z
@@ -73,7 +68,7 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
           val sld1 = SLD(X, x)
           (dz to maxZ by dz).foreach { z =>
             val sld2 = SLD(Z, z)
-            val next = yFindPathAux(from + sld1 + sld2, to, cache)
+            val next = yFindPathAux(from + sld1 + sld2, to)
             if (best.isEmpty || next.length < best.length) {
               best = next
               command = LMove(sld1, sld2)
@@ -85,7 +80,7 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
       }
     })
 
-  def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to, AStarPathFinder.yPathCache).reverse
+  def yFindPath(from: Coord, to: Coord): List[Command] = yFindPathAux(from, to).reverse
 
   def findPath(from: Coord, to: Coord): List[Command] = {
     if (from.y == to.y && model.countY(from.y) == 0)
@@ -150,6 +145,5 @@ class AStarPathFinder(model: Matrix, botPositions: Set[Coord]) {
 }
 
 object AStarPathFinder {
-  var yCacheDim = 0
   val yPathCache = mutable.Map[Coord, List[Command]]()
 }
